@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>Endeavour Dashboard</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="/jquery/jquery.js"></script>
+        <script src="/chartjs/chart.js"></script>
+        <script src="/moment/moment.js"></script>
+        <script src="/semantic-ui/semantic.js"></script>
+        <link rel="stylesheet" href="/semantic-ui/semantic.css">
+        <!--<script src="/dashboard.js">-->
+        <style>
+            #sensorChartWrapper{
+                width: 100%;
+                /*height: 400px;*/
+            }
+            
+            #sensors {
+                margin: 0px !important;
+                min-height: 150px;
+            }
+            
+            #sensors .sensor.alert .statistic .value {
+                -webkit-animation: ALERT 1s infinite;  /* Safari 4+ */
+                -moz-animation: ALERT 1s infinite;  /* Fx 5+ */
+                -o-animation: ALERT 1s infinite;  /* Opera 12+ */
+                animation: ALERT 1s infinite;  /* IE 10+, Fx 29+ */
+             }
+
+            @-webkit-keyframes ALERT {
+              0%, 49% {
+                color: #ffffff;
+              }
+              50%, 100% {
+                color: #9e1919;
+              }
+            }
+            
+            #sensors .sensor .header{
+                font-size: 1.5em !important;
+            }
+            
+            #sensors .sensor .header, 
+            #sensors .sensor .statistic .value,
+            #sensors .sensor .statistic .label,
+            #sensors .sensor .content{
+                color: #ffffff;
+            }
+            
+            #sensors .sensor.showOnGraph{
+                border-color: #717171;
+                border-style: solid;
+            }
+            
+        </style>
+        <script>
+
+            $(function () {
+               
+                var sensors = [];
+                var sensorColors = ["#50b13f", "#2597ce","#ce8325", "#5e25ce","#b425ce","#ce2563"];
+                var sensorData = {
+                    labels: [],
+                    datasets: []
+                };
+                var ctx = document.getElementById('sensorChart').getContext('2d');
+                var chart = new Chart(ctx, {
+                    type: 'line',
+                    data: sensorData,
+                    options: {
+                        //animation: false,
+                        scales: {
+                            yAxes: [{
+                                    ticks: {
+                                        beginAtZero: true
+                                    }
+                                }]
+                        }
+                    }
+                });
+                
+                var $sensors = $("#sensors");
+                var $sensorTemplate = $("#sensorTemplate");
+                var refreshSensors = function(){
+                    return $.ajax({
+                       url : "/rest/api/sensors",
+                       success: function( result ){
+                           sensors = result;
+                           renderSensors();
+                       }
+                    });
+                };
+                
+                $sensors.on( "click", ".sensor", function(){
+                    $(this).toggleClass("showOnGraph");
+                    refreshChart();
+                });
+                
+                var renderSensors = function(){
+                    //$sensors.empty();
+                    for( var i=0; i < sensors.length; i++ )
+                    {
+                        var sensor = sensors[i];
+                        var $sensor = $sensors.find("#" + sensor.id );
+                        //var append = false;
+                        if( $sensor.length === 0 )
+                        {
+                            $sensor = $sensorTemplate.clone();
+                            $sensor.removeAttr("style");
+                            $sensor.attr("id", sensor.id );
+                            $sensor.css("background-color", sensorColors[i]);
+                            $sensors.append( $sensor );
+                            $sensor.addClass("showOnGraph");
+                            //$sensors.find(".ui.checkbox").checkbox();
+                        }
+                        $sensor.find(".name").text( sensor.name );
+                        if( sensor.type === 1)
+                        {
+                            $sensor.find(".sensorValue").text( sensor.temp );
+                            $sensor.find(".sensorUnits").text( "Celcius" );
+                            if( sensor.min !== null || sensor.max !== null)
+                            {
+                                $sensor.find(".min").text( sensor.min );
+                                $sensor.find(".max").text( sensor.max );
+                                if( sensor.min !== null && sensor.temp <= sensor.min )
+                                    $sensor.addClass("alert");
+                                else if( sensor.max !== null && sensor.temp >= sensor.max )
+                                    $sensor.addClass("alert");                
+                                else
+                                    $sensor.removeClass("alert");
+                            }
+                        }
+                    }
+                };
+
+                var refreshChart = function()
+                {
+                    var promises = [];
+                    for( var i = 0; i < sensors.length; i++ )
+                    {
+                        var sensor = sensors[i];
+                        var $sensor = $sensors.find("#" + sensor.id);
+                        if( $sensor.hasClass("showOnGraph") )
+                        {
+                            promises.push( refreshSensorData( sensor ) );
+                        }
+                        else
+                        {
+                            for( var j=0; j < sensorData.datasets.length; j++ )
+                            {
+                                var dataset = sensorData.datasets[j];
+                                if( dataset.sensorId === sensor.id )
+                                    sensorData.datasets.splice(j, 1);
+                            }
+                        }
+                    }
+                    $.when.apply( $, promises ).then( function(){
+                        chart.update(0);
+                    });
+                };
+                
+                var getBeginDate = function()
+                {
+                    var begin = new Date();
+                    begin.setHours( begin.getHours() - 24 );
+                    begin.setMinutes( 0 );
+                    begin.setSeconds( 0 );
+                    return begin;
+                };
+                
+                var getEndDate = function()
+                {
+                    return new Date();
+                };
+                
+                var getTimeInterval = function()
+                {
+                    return "hour";
+                };
+                
+                var getSensorDataset = function ( sensor )
+                {
+                    for( var i=0; i < sensorData.datasets.length; i++ )
+                    {
+                        var dataset = sensorData.datasets[i];
+                        if( dataset.sensorId === sensor.id )
+                            return dataset;
+                    }
+                    var color = $sensors.find("#" + sensor.id).css("background-color");
+                    var dataset = {
+                        label : sensor.name,
+                        data: [],
+                        fill: false,
+                        sensorId: sensor.id,
+                        borderColor: color,
+                        backgroundColor: color
+                    };
+                    sensorData.datasets.push( dataset );
+                    return dataset;
+                };
+                
+                var refreshSensorData = function ( sensor )
+                {
+                    var begin = getBeginDate();
+                    var end = getEndDate();
+                    var interval = getTimeInterval();
+                    var url = "/rest/api/sensor/" + sensor.id 
+                            + "/timeseries/" + interval
+                            + "?begin=" + begin.toISOString()
+                            + "&end=" + end.toISOString();
+                    
+                    return $.ajax({
+                        url: url,
+                        dataType: "json",
+                        success: function ( json ) {
+                            //data.datasets = [];
+                            var dataset = getSensorDataset( sensor );
+//                            var alert = {
+//                               label: "Sensor Alert",
+//                               data: [],
+//                               fill: false,
+//                               borderColor: "#ff2323"
+//                            };
+                            //json
+                            dataset.data = [];
+                            sensorData.labels = [];
+                            for (var i = 0; i < json.length; i++)
+                            {
+                                var point = json[i];
+                                sensorData.labels.push(moment(point.timestamp).format("DD MMM HH:mm"));
+                                dataset.data.push(point.temp);
+                                //alert.data.push(45);
+                            }
+                            //window.sensorsChart.update();
+                        }
+                    });
+                };
+
+                var chartInterval;
+                var sensorsInterval;
+                refreshSensors().then( refreshChart ).then( function(){
+                    chartInterval = setInterval( refreshChart, 1000 * 60 );
+                    sensorsInterval = setInterval( refreshSensors, 1000 * 5 );
+                });
+            });
+        </script>
+    </head>
+    <body>
+        <div class="ui page">
+            <div id="sensors" class="ui eight cards" >
+                <div id="sensorTemplate"  class="sensor fluid card" style="display:none">
+                    <div class="center aligned content">
+                        <div class="header">
+                            <span class="name"></span>
+                        </div>
+                    </div>
+                    <div class="content">
+                        <div class="ui one small statistics">
+                            <div class="ui statistic">
+                                <div class="value sensorValue"></div>
+                                <div class="label sensorUnits"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="center aligned content">
+                        Min:<span class="min"></span>
+                        Max:<span class="max"></span>
+                    </div>
+                    <!--
+                   <div class="content">
+                        <div class="ui large checkbox">
+                            <input type="checkbox" name="show">
+                            <label>Graph</label>
+                        </div>
+                   </div>
+                    -->
+                </div>
+            </div>
+            <div id="sensorChartWrapper" >
+                <canvas id="sensorChart"></canvas>
+            </div>
+
+        </div>
+    </body>
+</html>
