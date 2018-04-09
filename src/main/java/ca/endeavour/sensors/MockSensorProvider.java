@@ -5,7 +5,6 @@
  */
 package ca.endeavour.sensors;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;

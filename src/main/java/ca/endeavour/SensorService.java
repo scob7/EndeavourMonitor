@@ -29,6 +29,7 @@ import ca.endeavour.sensors.TemperatureSensor;
 import ca.endeavour.sensors.WaterSensor;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import javax.persistence.Query;
 import javax.persistence.Tuple;
@@ -222,7 +223,7 @@ public class SensorService
        return json;
     }
     
-    public AbstractSensor pollSensor( String serial )
+    public AbstractSensor pollSensor( String serial ) throws IOException
     {
         return sensorProvider.readSensor(serial);
     }

@@ -12,6 +12,7 @@ import ca.endeavour.sensors.TemperatureSensor;
 import ca.endeavour.sensors.WaterSensor;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import java.io.IOException;
 import java.util.Date;
 
 import javax.servlet.http.HttpServletRequest;
@@ -60,10 +61,9 @@ public class RestApi
         {
             Sensor sensor = iter.next();
             final JsonObject json = sensor.toJSON();
-            AbstractSensor reading = sensorService.pollSensor(sensor.getSerial());
-            if( reading == null )
-                continue;
-            reading.accept(new AbstractSensor.SensorVisitor()
+            try{
+                AbstractSensor reading = sensorService.pollSensor(sensor.getSerial());
+                reading.accept(new AbstractSensor.SensorVisitor()
             {
                 @Override
                 public void visit(TemperatureSensor sensor)
@@ -77,6 +77,12 @@ public class RestApi
                     throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
                 }
             });
+            }
+            catch(IOException ioe )
+            {
+                json.addProperty("temp", "ERR" );
+            }
+            
             result.add( json );
         }
         return result.toString();
