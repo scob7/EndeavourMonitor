@@ -71,7 +71,7 @@ public class W1SensorProvider implements SensorProvider
         {
             W1Device w1Sensor = iter.next();
             AbstractSensor reading = readSensor( w1Sensor );
-            if( w1Sensor.getId().equalsIgnoreCase(serial) )
+            if( w1Sensor.getId().trim().equalsIgnoreCase(serial) )
             {
                 return reading;
             } 
