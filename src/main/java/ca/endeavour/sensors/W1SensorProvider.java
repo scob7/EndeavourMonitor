@@ -36,12 +36,12 @@ public class W1SensorProvider implements SensorProvider
             W1Device w1Sensor = iter.next();
             try
             {
-
                 result.add(readSensor( w1Sensor ));
-            } catch (Exception ex)
+            } 
+            catch (Exception ex)
             {
-                System.err.println("Failed to read sensor " + w1Sensor.getId() + " value.");
-                ex.printStackTrace();
+                log.warn("Failed to read sensor " + w1Sensor.getId(), ex);
+                //System.err.println("Failed to read sensor " + w1Sensor.getId() + " value.");
                 //throw new RuntimeException("Failed to read sensor " + w1Sensor.getId() + " value.", ex );
             }
         }
@@ -79,32 +79,31 @@ public class W1SensorProvider implements SensorProvider
     public static float parseTemperature(W1Device device) throws IOException
     {
         String value = device.getValue();
-        log.info(value);
+        log.info( "\n" + value);
         
-        try
+        String[] lines = value.split("\n");
+        String statusLine = lines[0];
+        String[] statusLineValues = statusLine.split(" ");
+        String status = statusLineValues[statusLineValues.length - 1];
+        
+        if (!status.equals("YES"))
         {
-            String[] lines = value.split("\n");
-            String statusLine = lines[0];
-            String[] statusLineValues = statusLine.split(" ");
-            String status = statusLineValues[statusLineValues.length - 1];
-            if (!status.equals("YES"))
-            {
-                //return error( w1.getId().trim(),w1.getName().trim(), statusLineValues[statusLineValues.length- 1]);
-                throw new IOException("Sensor " + device.getId() + " returned status " + status);
-            }
+            //return error( w1.getId().trim(),w1.getName().trim(), statusLineValues[statusLineValues.length- 1]);
+            throw new IllegalStateException("Sensor " + device.getId() + " returned status " + status);
+        }
 
-            String valueLine = lines[1];
-            String[] valueLineValues = valueLine.split(" ");
-            String temp = valueLineValues[valueLineValues.length - 1].substring(2);
-            if( temp.length() >= 2 )
-            {
-                temp = temp.substring(0, 2) + "." + temp.substring(2);
-            }
-            return Float.parseFloat(temp);
-        }
-        catch( Exception ex )
+        if( lines.length < 2 )
+            throw new IllegalArgumentException("Sensor " + device.getId() + " missing value line");
+        String valueLine = lines[1];
+        String[] valueLineValues = valueLine.split(" ");
+        String temp = valueLineValues[valueLineValues.length - 1];
+        if( temp.length() < 3 )
+            throw new IllegalArgumentException("Sensor " + device.getId() + " invalid temp:" + temp );
+        temp = temp.substring(2);
+        if( temp.length() >= 2 )
         {
-            throw new IllegalArgumentException("Failed to parse temperature for " + device.getId(), ex );
+            temp = temp.substring(0, 2) + "." + temp.substring(2);
         }
+        return Float.parseFloat(temp);
     }
 }
