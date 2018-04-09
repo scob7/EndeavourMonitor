@@ -196,13 +196,14 @@ public class SensorService
         String psBegin = postgresFormat.format(begin);
         String psEnd = postgresFormat.format(end);
         //
-       String sql = "SELECT timeseries, temp"//coalesce(temp,0) AS temp"
+       String sql = "SELECT timeseries, temp AS temp"//coalesce(temp,0) AS temp"
                + " FROM generate_series( '" + psBegin + "'\\:\\:timestamp, '" + psEnd + "'\\:\\:timestamp, '1 " + interval.name() + "' ) AS timeseries"
                + " LEFT OUTER JOIN (SELECT date_trunc('" + interval.name() + "', timestamp) as interval"
-               + " ,avg(temperature) as temp"
+               + " , avg(temperature) as temp"
                + " FROM events WHERE sensorid = " + sensorid
                + " AND timestamp >= '" + psBegin + "' AND timestamp < '" + psEnd + "'"
                + " GROUP BY interval) results ON (timeseries = results.interval)";
+       log.info("Query timeseries for sensor {}\n{}", sensorid, sql );
        Query query = em.createNativeQuery(sql);
        //query.setParameter("begin", begin );
        //query.setParameter("end", end );
@@ -221,7 +222,9 @@ public class SensorService
            Double temp = (Double)row[1];
            JsonObject datapoint = new JsonObject();
            datapoint.addProperty("timestamp", timestamp.toString() );
-           datapoint.addProperty("temp", Math.round(temp * 100) / 100 );
+           if( temp != null )
+               temp = Math.round(temp * 100.0) / 100.0;
+           datapoint.addProperty("temp", temp );
            json.add( datapoint );
        }
        return json;

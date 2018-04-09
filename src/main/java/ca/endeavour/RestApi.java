@@ -13,6 +13,7 @@ import ca.endeavour.sensors.WaterSensor;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import java.io.IOException;
+import java.util.Calendar;
 import java.util.Date;
 
 import javax.servlet.http.HttpServletRequest;
@@ -122,14 +123,22 @@ public class RestApi {
     @Produces(MediaType.APPLICATION_JSON)
     public String timesseries(
             @PathParam("sensorid") final long sensorid,
-            @PathParam("interval") String interval,
-            @QueryParam("begin") String begin,
-            @QueryParam("end") String end) {
-        SensorService.TimeInterval timeInterval = SensorService.TimeInterval.valueOf(interval);
-        Date beginDate = DatatypeConverter.parseDateTime(begin).getTime();
-        Date endDate = DatatypeConverter.parseDateTime(end).getTime();
+            @PathParam("interval") String intervalParam,
+            @QueryParam("begin") String beginParam,
+            @QueryParam("end") String endParam) {
+        SensorService.TimeInterval interval = SensorService.TimeInterval.valueOf(intervalParam);
+        if( interval == null)
+            throw new BadRequestException("Invalid time interval " + interval );
+        
+        Calendar begin = DatatypeConverter.parseDateTime(beginParam);
+        if( begin == null )
+            throw new BadRequestException("Invalid begin date " + beginParam );
+        
+        Calendar end = DatatypeConverter.parseDateTime(endParam);
+        if( end == null )
+            throw new BadRequestException("Invalid end date " + endParam );
 
-        JsonArray result = sensorService.queryTemperatureTimeseries(sensorid, beginDate, endDate, timeInterval);
+        JsonArray result = sensorService.queryTemperatureTimeseries(sensorid, begin.getTime(), end.getTime(), interval );
         return result.toString();
     }
 
