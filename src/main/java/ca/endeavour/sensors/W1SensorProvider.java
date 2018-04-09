@@ -71,7 +71,7 @@ public class W1SensorProvider implements SensorProvider
         int type = w1Sensor.getFamilyId();
         // check family id to determine the type of sensor?
         float temp = parseTemperature(w1Sensor);
-        TemperatureSensor sensor = new TemperatureSensor(w1Sensor.getId());
+        TemperatureSensor sensor = new TemperatureSensor(w1Sensor.getId().trim());
         sensor.setValue( temp );
         return sensor;
     }
@@ -79,7 +79,7 @@ public class W1SensorProvider implements SensorProvider
     public static float parseTemperature(W1Device device) throws IOException
     {
         String value = device.getValue();
-        log.info( "\n" + value);
+        log.info( device.getId() + "\n" + value );
         
         String[] lines = value.split("\n");
         String statusLine = lines[0];

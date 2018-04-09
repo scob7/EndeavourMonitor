@@ -172,7 +172,7 @@ public class RestApi
         //AbstractSensor sensor = sensorService.pollSensor(serial);
         //if( sensor == null )
         //    throw new NotFoundException("Sensor " + serial + " not found");
-        Sensor result = sensorService.registerSensor( serial, name, type, min, max );
+        Sensor result = sensorService.registerSensor( serial.trim(), name.trim(), type, min, max );
         return result.toJSON().toString();
     }
 }
