@@ -105,12 +105,15 @@ public class W1SensorProvider implements SensorProvider
             String valueLine = lines[1];
             String[] valueLineValues = valueLine.split(" ");
             String temp = valueLineValues[valueLineValues.length - 1].substring(2);
-            temp = temp.substring(0, 2) + "." + temp.substring(2);
+            if( temp.length() >= 2 )
+            {
+                temp = temp.substring(0, 2) + "." + temp.substring(2);
+            }
             return Float.parseFloat(temp);
         }
         catch( Exception ex )
         {
-            throw new IllegalArgumentException("Failed to parse temperature for " + device.getId() + "\n\n" + value, ex );
+            throw new IllegalArgumentException("Failed to parse temperature for " + device.getId(), ex );
         }
     }
 }
