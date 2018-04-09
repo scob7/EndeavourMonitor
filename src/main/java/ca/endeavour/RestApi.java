@@ -31,59 +31,56 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Path("/api")
-public class RestApi
-{
+public class RestApi {
+
     @Inject
     private SensorService sensorService;
 
     @Context
     private HttpServletRequest request;
     //final GpioController gpio = GpioFactory.getInstance();
-    
+
     @GET
     @Path("test")
     @Produces(MediaType.TEXT_PLAIN)
-    public String test()
-    {
+    public String test() {
         return "hello";
     }
-    
+
     @GET
     @Path("sensors")
     @Produces(MediaType.APPLICATION_JSON)
-    public String sensors()
-    {
+    public String sensors() {
         List<Sensor> sensors = sensorService.findAllSensors();
-       
+
         JsonArray result = new JsonArray();
         Iterator<Sensor> iter = sensors.iterator();
-        while( iter.hasNext() )
-        {
+        while (iter.hasNext()) {
             Sensor sensor = iter.next();
             final JsonObject json = sensor.toJSON();
-            try{
-                AbstractSensor reading = sensorService.pollSensor(sensor.getSerial());
-                reading.accept(new AbstractSensor.SensorVisitor()
-            {
-                @Override
-                public void visit(TemperatureSensor sensor)
-                {
-                    json.addProperty("temp", sensor.getValue() );
+            try {
+                AbstractSensor reading = sensorService.readSensor(sensor.getSerial());
+                if (reading == null) {
+                    json.addProperty("temp", "ERR");
+                    continue;
                 }
 
-                @Override
-                public void visit(WaterSensor sensor)
-                {
-                    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                }
-            });
+                reading.accept(new AbstractSensor.SensorVisitor() {
+                    @Override
+                    public void visit(TemperatureSensor sensor) {
+                        json.addProperty("temp", sensor.getValue());
+                    }
+
+                    @Override
+                    public void visit(WaterSensor sensor) {
+                        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    }
+                });
+            } catch (IOException ioe) {
+                json.addProperty("temp", "ERR");
             }
-            catch(IOException ioe )
-            {
-                json.addProperty("temp", "ERR" );
-            }
-            
-            result.add( json );
+
+            result.add(json);
         }
         return result.toString();
     }
@@ -96,21 +93,21 @@ public class RestApi
             @QueryParam("count") @DefaultValue("1000") long count,
             @QueryParam("begin") String begin,
             @QueryParam("end") String end
-            )
-    {
+    ) {
         JsonArray json = new JsonArray();
         //Device device = sensorService.findDeviceById(id);
         Date beginDate = null;
-        if( begin != null )
-           beginDate = DatatypeConverter.parseDateTime(begin).getTime();
+        if (begin != null) {
+            beginDate = DatatypeConverter.parseDateTime(begin).getTime();
+        }
         Date endDate = null;
-        if( end != null )
+        if (end != null) {
             endDate = DatatypeConverter.parseDateTime(end).getTime();
-        List<Event> events = sensorService.findSensorEvents( id, start, count, beginDate, endDate);
+        }
+        List<Event> events = sensorService.findSensorEvents(id, start, count, beginDate, endDate);
 
         Iterator<Event> iter = events.iterator();
-        while (iter.hasNext())
-        {
+        while (iter.hasNext()) {
             Event event = iter.next();
             //if( event.getId().equals(id))
             json.add(event.toJSON());
@@ -118,7 +115,7 @@ public class RestApi
 
         return json.toString();
     }
-    
+
     @GET
     @Path("sensor/{sensorid}/timeseries/{interval}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -126,12 +123,11 @@ public class RestApi
             @PathParam("sensorid") final long sensorid,
             @PathParam("interval") String interval,
             @QueryParam("begin") String begin,
-            @QueryParam("end") String end )
-    {
+            @QueryParam("end") String end) {
         SensorService.TimeInterval timeInterval = SensorService.TimeInterval.valueOf(interval);
         Date beginDate = DatatypeConverter.parseDateTime(begin).getTime();
         Date endDate = DatatypeConverter.parseDateTime(end).getTime();
-        
+
         JsonArray result = sensorService.queryTemperatureTimeseries(sensorid, beginDate, endDate, timeInterval);
         return result.toString();
     }
@@ -139,20 +135,18 @@ public class RestApi
     @GET
     @Path("/sensors/unregistered")
     @Produces(MediaType.APPLICATION_JSON)
-    public String unregisteredSensors()
-    {
+    public String unregisteredSensors() {
         List<AbstractSensor> sensors = sensorService.findUnregisteredSensors();
         JsonArray result = new JsonArray();
         Iterator<AbstractSensor> iter = sensors.iterator();
-        while( iter.hasNext() )
-        {
+        while (iter.hasNext()) {
             AbstractSensor sensor = iter.next();
-            result.add( sensor.toJSON() );
+            result.add(sensor.toJSON());
         }
-        
+
         return result.toString();
     }
-    
+
     @POST
     @Path("/sensor/register/{serial}")
     //@Consumes(MediaType.APPLICATION_JSON)
@@ -161,18 +155,19 @@ public class RestApi
             @QueryParam("name") String name,
             @QueryParam("type") int type,
             @QueryParam("min") String minParam,
-            @QueryParam("max") String maxParam )
-    {
+            @QueryParam("max") String maxParam) {
         Float min = null;
         Float max = null;
-        if( minParam != null )
+        if (minParam != null) {
             min = Float.parseFloat(minParam);
-        if( maxParam != null )
+        }
+        if (maxParam != null) {
             max = Float.parseFloat(maxParam);
+        }
         //AbstractSensor sensor = sensorService.pollSensor(serial);
         //if( sensor == null )
         //    throw new NotFoundException("Sensor " + serial + " not found");
-        Sensor result = sensorService.registerSensor( serial.trim(), name.trim(), type, min, max );
+        Sensor result = sensorService.registerSensor(serial.trim(), name.trim(), type, min, max);
         return result.toJSON().toString();
     }
 }
