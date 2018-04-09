@@ -65,14 +65,15 @@ public class W1SensorProvider implements SensorProvider
     public AbstractSensor readSensor( final String serial) throws IOException
     {
         List<W1Device> w1Sensors = w1.getDevices();
-        waitForSensors(DEFAULT_WAIT);
+        //waitForSensors(DEFAULT_WAIT);
         Iterator<W1Device> iter = w1Sensors.iterator();
         while (iter.hasNext())
         {
             W1Device w1Sensor = iter.next();
+            AbstractSensor reading = readSensor( w1Sensor );
             if( w1Sensor.getId().equalsIgnoreCase(serial) )
             {
-                return readSensor( w1Sensor );
+                return reading;
             } 
         }
         log.warn("Sensor {} not found", serial );
