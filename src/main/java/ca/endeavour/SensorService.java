@@ -33,6 +33,8 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import javax.persistence.Query;
 import javax.persistence.Tuple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -52,6 +54,8 @@ public class SensorService
     
     @Inject
     private SensorProvider sensorProvider;
+    
+    private static final Logger log = LoggerFactory.getLogger(SensorService.class);
     
     private final W1Master w1 = new W1Master();
     //@Inject
@@ -271,7 +275,11 @@ public class SensorService
             {
                 sensorEntity = findSensorBySerial(serial);
                 if (sensorEntity == null)
+                {
+                    // log warn that sensor is not configured
+                    log.warn("Unconfigured sensor: {}", serial);
                     continue;
+                }
                 sensorCache.put(serial, sensorEntity);
             }
 
