@@ -104,10 +104,10 @@ public class SensorService
     }
     
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public Sensor registerSensor( AbstractSensor sensor, String name, int type, Float min, Float max )
+    public Sensor registerSensor( String serial, String name, int type, Float min, Float max )
     {
         Sensor result = new Sensor();
-        result.setSerial(sensor.getSerial());
+        result.setSerial(serial);
         result.setName(name);
         result.setType(type);
         result.setMin( min );

@@ -50,7 +50,7 @@ public class W1SensorProvider implements SensorProvider
     }
 
     @Override
-    public AbstractSensor readSensor(String serial)
+    public AbstractSensor readSensor(String serial) throws IOException
     {
         List<W1Device> w1Sensors = w1.getDevices();
         Iterator<W1Device> iter = w1Sensors.iterator();
@@ -59,16 +59,7 @@ public class W1SensorProvider implements SensorProvider
             W1Device w1Sensor = iter.next();
             if( w1Sensor.getId().equalsIgnoreCase(serial))
             {
-                try
-                {
-                    return readSensor( w1Sensor );
-                } catch (Exception ex)
-                {
-                    System.err.println("Failed to read sensor " + w1Sensor.getId() + " value.");
-                    ex.printStackTrace();
-                    return null;
-                    //throw new RuntimeException("Failed to read sensor " + w1Sensor.getId() + " value.", ex );
-                }
+                return readSensor( w1Sensor );
             } 
         }
         

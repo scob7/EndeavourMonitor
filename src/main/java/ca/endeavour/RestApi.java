@@ -163,10 +163,10 @@ public class RestApi
             min = Float.parseFloat(minParam);
         if( maxParam != null )
             max = Float.parseFloat(maxParam);
-        AbstractSensor sensor = sensorService.pollSensor(serial);
-        if( sensor == null )
-            throw new NotFoundException("Sensor " + serial + " not found");
-        Sensor result = sensorService.registerSensor( sensor, name, type, min, max );
+        //AbstractSensor sensor = sensorService.pollSensor(serial);
+        //if( sensor == null )
+        //    throw new NotFoundException("Sensor " + serial + " not found");
+        Sensor result = sensorService.registerSensor( serial, name, type, min, max );
         return result.toJSON().toString();
     }
 }

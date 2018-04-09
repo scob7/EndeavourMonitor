@@ -5,6 +5,7 @@
  */
 package ca.endeavour.sensors;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -14,5 +15,5 @@ import java.util.List;
 public interface SensorProvider
 {
     public List<AbstractSensor> readSensors();
-    public AbstractSensor readSensor( String serial );
+    public AbstractSensor readSensor( String serial ) throws IOException;
 }
