@@ -56,6 +56,7 @@ public class SpringConfig
         driver.setPassword("Endeavour");
         return driver;
     }
+    
     @Bean
     public LocalContainerEntityManagerFactoryBean entityManagerFactory()
     {

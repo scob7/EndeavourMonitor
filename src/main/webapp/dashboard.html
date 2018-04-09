@@ -58,8 +58,11 @@ and open the template in the editor.
                 border-style: solid;
             }
             
+            #unregisteredMessage:hover{
+                cursor: pointer;
+            }
         </style>
-        <script>
+        <script type="application/javascript">
 
             $(function () {
                
@@ -78,8 +81,11 @@ and open the template in the editor.
                         scales: {
                             yAxes: [{
                                     ticks: {
-                                        beginAtZero: true
-                                    }
+                                        beginAtZero: true,
+                                        min: -30,
+                                        max: 110
+                                    },
+                                    
                                 }]
                         }
                     }
@@ -168,8 +174,9 @@ and open the template in the editor.
                 var getBeginDate = function()
                 {
                     var begin = new Date();
-                    begin.setHours( begin.getHours() - 24 );
-                    begin.setMinutes( 0 );
+                    //begin.setHours( begin.getHours() - 24 );
+                    //begin.setMinutes( 0 );
+                    begin.setMinutes( begin.getMinutes() - 60 );
                     begin.setSeconds( 0 );
                     return begin;
                 };
@@ -181,7 +188,8 @@ and open the template in the editor.
                 
                 var getTimeInterval = function()
                 {
-                    return "hour";
+                    //return "hour";
+                    return "minute";
                 };
                 
                 var getSensorDataset = function ( sensor )
@@ -218,7 +226,7 @@ and open the template in the editor.
                     return $.ajax({
                         url: url,
                         dataType: "json",
-                        success: function ( json ) {
+                        success: function ( timeseries ) {
                             //data.datasets = [];
                             var dataset = getSensorDataset( sensor );
 //                            var alert = {
@@ -230,9 +238,9 @@ and open the template in the editor.
                             //json
                             dataset.data = [];
                             sensorData.labels = [];
-                            for (var i = 0; i < json.length; i++)
+                            for (var i = 0; i < timeseries.length; i++)
                             {
-                                var point = json[i];
+                                var point = timeseries[i];
                                 sensorData.labels.push(moment(point.timestamp).format("DD MMM HH:mm"));
                                 dataset.data.push(point.temp);
                                 //alert.data.push(45);
@@ -247,6 +255,77 @@ and open the template in the editor.
                 refreshSensors().then( refreshChart ).then( function(){
                     chartInterval = setInterval( refreshChart, 1000 * 60 );
                     sensorsInterval = setInterval( refreshSensors, 1000 * 5 );
+                });
+                
+                var $unregisteredMessage = $("#unregisteredMessage");
+                var $registerSensorsModal = $("#registerSensorsModal").modal();
+                var $unregisteredSensors = $registerSensorsModal.find("#unregisteredSensors");
+                var $unregisteredSensorTemplate = $registerSensorsModal.find("#unregisteredSensorTemplate");
+                var $registerSensorMessage = $registerSensorsModal.find(".message");
+                var refreshUnregisteredSensors = function(){
+                    $.ajax({
+                        url: "/rest/api/sensors/unregistered",
+                        success: function( sensors ){
+                            if( sensors.length > 0 )
+                            {
+                                $unregisteredMessage.text( "You have " + sensors.length + " unregistered sensors. Click here to configure.");
+                                $unregisteredMessage.removeAttr("style");
+                                
+                                $unregisteredSensors.empty();
+                                for( var i=0; i < sensors.length; i++ )
+                                {
+                                    var sensor = sensors[i];
+                                    var $sensor = $unregisteredSensorTemplate.clone();
+                                    $sensor.removeAttr("style");
+                                    $sensor.attr("id", sensor.serial );
+                                    $sensor.find(".serial").text( sensor.serial );
+                                    $sensor.find(".value" ).text( sensor.temp );
+                                    $sensor.find(".registerSensor").attr("data-serial", sensor.serial ).attr("data-type", "1" );
+                                    
+                                    $unregisteredSensors.append( $sensor );
+                                }
+                            }
+                            else
+                                $unregisteredMessage.style("display:none");
+                        }
+                    });
+                };
+                refreshUnregisteredSensors();
+                $unregisteredMessage.click( function(){
+                    $registerSensorMessage.attr("style","display:none");
+                    $registerSensorsModal.modal("show");
+                });
+                
+                $registerSensorsModal.find("#refreshSensors").click( function(){
+                    refreshUnregisteredSensors();
+                });
+                
+                $registerSensorsModal.on( "click", ".registerSensor", function(){
+                    var $this = $(this);
+                    var serial = $this.attr("data-serial");
+                    var $sensor = $this.closest(".sensor");
+                    var name = $sensor.find("input[name=name]").val();
+                    var min = $sensor.find("input[name=min]").val();
+                    var max = $sensor.find("input[name=max]").val();
+                    var type = 1;//$sensor.attr("data-type");
+                    
+                    $.ajax({
+                        method: "POST",
+                        url: "/rest/api/sensor/register/" + serial + "?name=" + name + "&type=" + type + "&min=" + min + "&max=" + max,
+                        dataType: "json",
+                        success: function( sensor ){
+                            $registerSensorMessage.removeClass("error").addClass("success");
+                            $registerSensorMessage.text( sensor.name + " registered!" );
+                            $registerSensorMessage.removeAttr("style");
+                            refreshUnregisteredSensors();
+                        },
+                        error: function( jqXHR, textStatus, errorThrown ){
+                            $registerSensorMessage.removeClass("success").addClass("error");
+                            $registerSensorMessage.text( "Failed to register " + name + ".\nCause: " + errorThrown );
+                            $registerSensorMessage.removeAttr("style");
+                            refreshUnregisteredSensors();
+                        }
+                    });
                 });
             });
         </script>
@@ -269,8 +348,10 @@ and open the template in the editor.
                         </div>
                     </div>
                     <div class="center aligned content">
-                        Min:<span class="min"></span>
-                        Max:<span class="max"></span>
+                        <div>
+                            <span class="minWrapper">Min:&nbsp;<span class="min"></span></span>
+                            <span class="maxWrapper">Max:<span class="max"></span></span>
+                        </div>
                     </div>
                     <!--
                    <div class="content">
@@ -282,10 +363,60 @@ and open the template in the editor.
                     -->
                 </div>
             </div>
+            <div id="unregisteredMessage" class="ui warning message" style="display:none;">
+                
+            </div>
             <div id="sensorChartWrapper" >
                 <canvas id="sensorChart"></canvas>
             </div>
 
+        </div>
+        <div id="registerSensorsModal" class="ui modal">
+            <div class="content">
+                <div class="ui two column grid">
+                <div class="column">
+                    <div class="ui header">
+                        Unregistered Sensors
+                    </div>
+                </div>
+                <div class="right aligned column">
+                    <button id="refreshSensors" class="ui orange button">Refresh</button>
+                </div>
+                </div>
+            </div>
+            <div class="scrolling content">
+                <div class="ui message" style="display:none;">
+                    
+                </div>
+                <div id="unregisteredSensors" class="ui one column vertically divided grid"></div>
+            </div>
+            <div class="actions">
+                <button class="ui blue button">Done</button>
+            </div>
+            <div id="unregisteredSensorTemplate" class="sensor row" style="display: none;">
+                <div class="twelve wide column" >
+                    <h2><span class="serial"></span> (temp <span class="value"></span>)</h2>
+                    <div class="ui form">
+                        <div class="field">
+                            <label>Name</label>
+                            <input class="ui input" type="text" name="name">
+                        </div>
+                        <div class="two fields">
+                            <div class="field">
+                                <label>Min</label>
+                                <input class="ui input" type="text" name="min">
+                            </div>
+                            <div class="field">
+                                <label>Max</label>
+                                <input class="ui input" type="text" name="max">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="four wide middle aligned right aligned column">
+                    <button class="ui registerSensor green button">Add</button>
+                </div>
+            </div>
         </div>
     </body>
 </html>

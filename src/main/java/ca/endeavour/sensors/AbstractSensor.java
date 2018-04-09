@@ -27,6 +27,7 @@ public abstract class AbstractSensor<T>
             
     //public abstract int getType();
     public abstract T getValue();
+    //public abstract int getType();
     
     public abstract void accept( SensorVisitor visitor );
     

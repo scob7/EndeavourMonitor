@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -19,7 +21,9 @@ import java.util.List;
 public class W1SensorProvider implements SensorProvider
 {
     private W1Master w1 = new W1Master();
-
+    
+    private static final Logger log = LoggerFactory.getLogger(W1SensorProvider.class);
+    
     @Override
     public List<AbstractSensor> readSensors()
     {
@@ -84,20 +88,29 @@ public class W1SensorProvider implements SensorProvider
     public static float parseTemperature(W1Device device) throws IOException
     {
         String value = device.getValue();
-        String[] lines = value.split("\n");
-        String statusLine = lines[0];
-        String[] statusLineValues = statusLine.split(" ");
-        String status = statusLineValues[statusLineValues.length - 1];
-        if (!status.equals("YES"))
+        log.info(value);
+        
+        try
         {
-            //return error( w1.getId().trim(),w1.getName().trim(), statusLineValues[statusLineValues.length- 1]);
-            throw new IOException("Sensor " + device.getId() + " returned status " + status);
-        }
+            String[] lines = value.split("\n");
+            String statusLine = lines[0];
+            String[] statusLineValues = statusLine.split(" ");
+            String status = statusLineValues[statusLineValues.length - 1];
+            if (!status.equals("YES"))
+            {
+                //return error( w1.getId().trim(),w1.getName().trim(), statusLineValues[statusLineValues.length- 1]);
+                throw new IOException("Sensor " + device.getId() + " returned status " + status);
+            }
 
-        String valueLine = lines[1];
-        String[] valueLineValues = valueLine.split(" ");
-        String temp = valueLineValues[valueLineValues.length - 1].substring(2);
-        temp = temp.substring(0, 2) + "." + temp.substring(2);
-        return Float.parseFloat(temp);
+            String valueLine = lines[1];
+            String[] valueLineValues = valueLine.split(" ");
+            String temp = valueLineValues[valueLineValues.length - 1].substring(2);
+            temp = temp.substring(0, 2) + "." + temp.substring(2);
+            return Float.parseFloat(temp);
+        }
+        catch( Exception ex )
+        {
+            throw new IllegalArgumentException("Failed to parse temperature for " + device.getId() + "\n\n" + value, ex );
+        }
     }
 }

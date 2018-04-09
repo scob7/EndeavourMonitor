@@ -60,7 +60,7 @@ public class RestApi
         {
             Sensor sensor = iter.next();
             final JsonObject json = sensor.toJSON();
-            AbstractSensor reading = sensorService.pollSensor(sensor);
+            AbstractSensor reading = sensorService.pollSensor(sensor.getSerial());
             reading.accept(new AbstractSensor.SensorVisitor()
             {
                 @Override
@@ -155,14 +155,14 @@ public class RestApi
             @QueryParam("min") String minParam,
             @QueryParam("max") String maxParam )
     {
-        
         Float min = null;
         Float max = null;
         if( minParam != null )
             min = Float.parseFloat(minParam);
         if( maxParam != null )
             max = Float.parseFloat(maxParam);
-        Sensor sensor = sensorService.registerSensor( serial, name, type, min, max );
-        return sensor.toJSON().toString();
+        AbstractSensor sensor = sensorService.pollSensor(serial);
+        Sensor result = sensorService.registerSensor( sensor, name, type, min, max );
+        return result.toJSON().toString();
     }
 }

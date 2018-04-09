@@ -104,16 +104,16 @@ public class SensorService
     }
     
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public Sensor registerSensor( String serial, String name, int type, Float min, Float max )
+    public Sensor registerSensor( AbstractSensor sensor, String name, int type, Float min, Float max )
     {
-        Sensor sensor = new Sensor();
-        sensor.setSerial(serial);
-        sensor.setName(name);
-        sensor.setType(type);
-        sensor.setMin( min );
-        sensor.setMax( max );
-        em.persist(sensor);
-        return sensor;
+        Sensor result = new Sensor();
+        result.setSerial(sensor.getSerial());
+        result.setName(name);
+        result.setType(type);
+        result.setMin( min );
+        result.setMax( max );
+        em.persist(result);
+        return result;
     }
 
     @Transactional(readOnly = true)
@@ -194,7 +194,7 @@ public class SensorService
        String sql = "SELECT timeseries, temp"//coalesce(temp,0) AS temp"
                + " FROM generate_series( '" + psBegin + "'\\:\\:timestamp, '" + psEnd + "'\\:\\:timestamp, '1 " + interval.name() + "' ) AS timeseries"
                + " LEFT OUTER JOIN (SELECT date_trunc('" + interval.name() + "', timestamp) as interval"
-               + " ,avg(temperature) as temp"
+               + " , round(avg(temperature),2) as temp"
                + " FROM events WHERE sensorid = " + sensorid
                + " AND timestamp >= '" + psBegin + "' AND timestamp < '" + psEnd + "'"
                + " GROUP BY interval) results ON (timeseries = results.interval)";
@@ -222,9 +222,9 @@ public class SensorService
        return json;
     }
     
-    public AbstractSensor pollSensor( Sensor sensor )
+    public AbstractSensor pollSensor( String serial )
     {
-        return sensorProvider.readSensor(sensor.getSerial());
+        return sensorProvider.readSensor(serial);
     }
 
     private void cacheSensors()
