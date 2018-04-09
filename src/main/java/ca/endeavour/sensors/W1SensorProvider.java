@@ -101,8 +101,9 @@ public class W1SensorProvider implements SensorProvider
             String statusLine = lines[0];
             String[] statusLineValues = statusLine.split(" ");
             String status = statusLineValues[statusLineValues.length - 1];
-
-            if (!status.equals("YES"))
+            int crc = Integer.parseInt( statusLineValues[statusLineValues.length - 2].split("=")[1] );
+            
+            if( crc == 0 || !status.equals("YES") )
             {
                 //return error( w1.getId().trim(),w1.getName().trim(), statusLineValues[statusLineValues.length- 1]);
                 //throw new IllegalStateException("Sensor " + device.getId() + " returned status " + status);
