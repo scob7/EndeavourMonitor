@@ -61,6 +61,8 @@ public class RestApi
             Sensor sensor = iter.next();
             final JsonObject json = sensor.toJSON();
             AbstractSensor reading = sensorService.pollSensor(sensor.getSerial());
+            if( reading == null )
+                continue;
             reading.accept(new AbstractSensor.SensorVisitor()
             {
                 @Override
@@ -162,6 +164,8 @@ public class RestApi
         if( maxParam != null )
             max = Float.parseFloat(maxParam);
         AbstractSensor sensor = sensorService.pollSensor(serial);
+        if( sensor == null )
+            throw new NotFoundException("Sensor " + serial + " not found");
         Sensor result = sensorService.registerSensor( sensor, name, type, min, max );
         return result.toJSON().toString();
     }

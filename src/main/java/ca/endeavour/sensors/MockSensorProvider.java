@@ -23,7 +23,7 @@ public class MockSensorProvider implements SensorProvider
     public MockSensorProvider()
     {
         devices = new ArrayList();
-        devices.add( new MockTemperatureSensor("1", 40, 60)); // engine
+        devices.add( new MockTemperatureSensor("55-ABCDEF", 40, 60)); // engine
         devices.add( new MockTemperatureSensor("2", 15, 30)); // pi
         devices.add( new MockTemperatureSensor("3", -20, 5)); // fridge
         devices.add( new MockTemperatureSensor("4", 30, 40)); // batteries

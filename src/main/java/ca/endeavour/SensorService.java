@@ -194,7 +194,7 @@ public class SensorService
        String sql = "SELECT timeseries, temp"//coalesce(temp,0) AS temp"
                + " FROM generate_series( '" + psBegin + "'\\:\\:timestamp, '" + psEnd + "'\\:\\:timestamp, '1 " + interval.name() + "' ) AS timeseries"
                + " LEFT OUTER JOIN (SELECT date_trunc('" + interval.name() + "', timestamp) as interval"
-               + " , round(avg(temperature),2) as temp"
+               + " ,avg(temperature) as temp"
                + " FROM events WHERE sensorid = " + sensorid
                + " AND timestamp >= '" + psBegin + "' AND timestamp < '" + psEnd + "'"
                + " GROUP BY interval) results ON (timeseries = results.interval)";
@@ -216,7 +216,7 @@ public class SensorService
            Double temp = (Double)row[1];
            JsonObject datapoint = new JsonObject();
            datapoint.addProperty("timestamp", timestamp.toString() );
-           datapoint.addProperty("temp", temp );
+           datapoint.addProperty("temp", Math.round(temp * 100) / 100 );
            json.add( datapoint );
        }
        return json;
