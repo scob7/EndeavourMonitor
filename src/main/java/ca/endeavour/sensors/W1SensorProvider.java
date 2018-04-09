@@ -101,7 +101,7 @@ public class W1SensorProvider implements SensorProvider
             String statusLine = lines[0];
             String[] statusLineValues = statusLine.split(" ");
             String status = statusLineValues[statusLineValues.length - 1];
-            int crc = Integer.parseInt( statusLineValues[statusLineValues.length - 2].split("=")[1] );
+            int crc = Integer.parseInt( statusLineValues[statusLineValues.length - 2].split("=")[1], 16 );
             
             if( crc == 0 || !status.equals("YES") )
             {
