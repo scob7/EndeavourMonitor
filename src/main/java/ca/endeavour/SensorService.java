@@ -229,6 +229,7 @@ public class SensorService
     
     public AbstractSensor readSensor( String serial ) throws IOException
     {
+        //sensorProvider.readSensors();
         return sensorProvider.readSensor(serial);
     }
 

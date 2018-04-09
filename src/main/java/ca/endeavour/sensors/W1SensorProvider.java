@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 public class W1SensorProvider implements SensorProvider
 {
     private W1Master w1 = new W1Master();
+    private static final long DEFAULT_WAIT = 200;
     
     private static final Logger log = LoggerFactory.getLogger(W1SensorProvider.class);
     
@@ -28,8 +29,8 @@ public class W1SensorProvider implements SensorProvider
     public List<AbstractSensor> readSensors()
     {
         List<AbstractSensor> result = new ArrayList<>();
-        
         List<W1Device> w1Sensors = w1.getDevices();
+        waitForSensors(DEFAULT_WAIT);
         Iterator<W1Device> iter = w1Sensors.iterator();
         while (iter.hasNext())
         {
@@ -49,10 +50,21 @@ public class W1SensorProvider implements SensorProvider
         return result;
     }
 
-    @Override
+    private static void waitForSensors( long millis )
+    {
+        try
+        {
+            Thread.sleep( millis  );
+        }
+        catch( InterruptedException ie )
+        {
+        }
+    }
+    //@Override
     public AbstractSensor readSensor( final String serial) throws IOException
     {
         List<W1Device> w1Sensors = w1.getDevices();
+        
         Iterator<W1Device> iter = w1Sensors.iterator();
         while (iter.hasNext())
         {
@@ -78,32 +90,40 @@ public class W1SensorProvider implements SensorProvider
 
     public static float parseTemperature(W1Device device) throws IOException
     {
-        String value = device.getValue();
-        log.info( device.getId() + "\n" + value );
-        
-        String[] lines = value.split("\n");
-        String statusLine = lines[0];
-        String[] statusLineValues = statusLine.split(" ");
-        String status = statusLineValues[statusLineValues.length - 1];
-        
-        if (!status.equals("YES"))
+        int retries = 3;
+        while( retries > 0)
         {
-            //return error( w1.getId().trim(),w1.getName().trim(), statusLineValues[statusLineValues.length- 1]);
-            throw new IllegalStateException("Sensor " + device.getId() + " returned status " + status);
-        }
+            String value = device.getValue();
+            log.info( device.getId() + "\n" + value );
 
-        if( lines.length < 2 )
-            throw new IllegalArgumentException("Sensor " + device.getId() + " missing value line");
-        String valueLine = lines[1];
-        String[] valueLineValues = valueLine.split(" ");
-        String temp = valueLineValues[valueLineValues.length - 1];
-        if( temp.length() < 3 )
-            throw new IllegalArgumentException("Sensor " + device.getId() + " invalid temp:" + temp );
-        temp = temp.substring(2);
-        if( temp.length() >= 2 )
-        {
-            temp = temp.substring(0, 2) + "." + temp.substring(2);
+            String[] lines = value.split("\n");
+            String statusLine = lines[0];
+            String[] statusLineValues = statusLine.split(" ");
+            String status = statusLineValues[statusLineValues.length - 1];
+
+            if (!status.equals("YES"))
+            {
+                //return error( w1.getId().trim(),w1.getName().trim(), statusLineValues[statusLineValues.length- 1]);
+                //throw new IllegalStateException("Sensor " + device.getId() + " returned status " + status);
+                retries--;
+                waitForSensors(DEFAULT_WAIT);    
+            }
+
+            if( lines.length < 2 )
+                throw new IllegalArgumentException("Sensor " + device.getId() + " missing value line");
+            String valueLine = lines[1];
+            String[] valueLineValues = valueLine.split(" ");
+            String temp = valueLineValues[valueLineValues.length - 1];
+            if( temp.length() < 3 )
+                throw new IllegalArgumentException("Sensor " + device.getId() + " invalid temp:" + temp );
+            temp = temp.substring(2);
+            if( temp.length() >= 2 )
+            {
+                temp = temp.substring(0, 2) + "." + temp.substring(2);
+            }
+            return Float.parseFloat(temp);
         }
-        return Float.parseFloat(temp);
+        
+        throw new IOException("Sensor " + device.getId() + " failed. Too Many retries" );
     }
 }
