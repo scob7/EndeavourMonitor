@@ -108,7 +108,8 @@ public class W1SensorProvider implements SensorProvider
                 //return error( w1.getId().trim(),w1.getName().trim(), statusLineValues[statusLineValues.length- 1]);
                 //throw new IllegalStateException("Sensor " + device.getId() + " returned status " + status);
                 retries--;
-                waitForSensors(DEFAULT_WAIT);    
+                waitForSensors(DEFAULT_WAIT);
+                continue;
             }
 
             if( lines.length < 2 )
