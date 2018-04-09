@@ -62,20 +62,21 @@ public class RestApi {
                 AbstractSensor reading = sensorService.readSensor(sensor.getSerial());
                 if (reading == null) {
                     json.addProperty("temp", "ERR");
-                    continue;
                 }
+                else
+                {
+                    reading.accept(new AbstractSensor.SensorVisitor() {
+                        @Override
+                        public void visit(TemperatureSensor sensor) {
+                            json.addProperty("temp", sensor.getValue());
+                        }
 
-                reading.accept(new AbstractSensor.SensorVisitor() {
-                    @Override
-                    public void visit(TemperatureSensor sensor) {
-                        json.addProperty("temp", sensor.getValue());
-                    }
-
-                    @Override
-                    public void visit(WaterSensor sensor) {
-                        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                    }
-                });
+                        @Override
+                        public void visit(WaterSensor sensor) {
+                            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                        }
+                    });
+                }
             } catch (IOException ioe) {
                 json.addProperty("temp", "ERR");
             }
