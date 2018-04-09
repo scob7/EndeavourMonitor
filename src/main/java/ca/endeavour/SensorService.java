@@ -227,7 +227,7 @@ public class SensorService
        return json;
     }
     
-    public AbstractSensor pollSensor( String serial ) throws IOException
+    public AbstractSensor readSensor( String serial ) throws IOException
     {
         return sensorProvider.readSensor(serial);
     }
@@ -263,7 +263,6 @@ public class SensorService
     @Transactional
     public void pollSensors()
     {
-        
         List<AbstractSensor> sensors = sensorProvider.readSensors();
         Iterator<AbstractSensor> iter = sensors.iterator();
         while (iter.hasNext())

@@ -50,19 +50,19 @@ public class W1SensorProvider implements SensorProvider
     }
 
     @Override
-    public AbstractSensor readSensor(String serial) throws IOException
+    public AbstractSensor readSensor( final String serial) throws IOException
     {
         List<W1Device> w1Sensors = w1.getDevices();
         Iterator<W1Device> iter = w1Sensors.iterator();
         while (iter.hasNext())
         {
             W1Device w1Sensor = iter.next();
-            if( w1Sensor.getId().equalsIgnoreCase(serial))
+            if( w1Sensor.getId().equalsIgnoreCase(serial) )
             {
                 return readSensor( w1Sensor );
             } 
         }
-        
+        log.warn("Sensor {} not found", serial );
         return null;
     }
     
