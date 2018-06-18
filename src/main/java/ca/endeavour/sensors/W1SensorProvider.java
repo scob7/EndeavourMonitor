@@ -40,7 +40,7 @@ public class W1SensorProvider implements SensorProvider {
             try {
                 result.add(readSensor(w1Sensor));
             } catch (Exception ex) {
-                log.warn("Failed to read sensor " + w1Sensor.getId(), ex);
+                log.warn("Failed to read sensor " + w1Sensor.getId() + " " + ex.getMessage() );
                 //System.err.println("Failed to read sensor " + w1Sensor.getId() + " value.");
                 //throw new RuntimeException("Failed to read sensor " + w1Sensor.getId() + " value.", ex );
             }
@@ -98,7 +98,7 @@ public class W1SensorProvider implements SensorProvider {
                 sensor.setValue(temp);
                 return sensor;
             } catch (Exception ex) {
-                log.warn("Failed to read sensor " + id, ex);   
+                log.warn("Failed to read sensor " + id + ": " + ex.getMessage() );   
             }
         }
 
