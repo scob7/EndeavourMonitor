@@ -81,8 +81,9 @@ public class W1SensorProvider implements SensorProvider {
             long time = System.currentTimeMillis();
             //long delay = time - LAST_READ_ATTEMPT;
             long delay = time - LAST_READ_ATTEMPT - READ_DELAY;
-            if (LAST_READ_ATTEMPT > 0 && delay > 0) {
+            if( LAST_READ_ATTEMPT > 0 && delay > 0 ) {
                 try {
+                    log.info("Waiting for " + delay + " ms before reading again");
                     Thread.sleep(delay);
                 } catch (InterruptedException ex) {
                     throw new IOException( ex );
