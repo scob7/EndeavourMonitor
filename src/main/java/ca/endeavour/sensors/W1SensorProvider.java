@@ -80,7 +80,7 @@ public class W1SensorProvider implements SensorProvider {
             retries--;
             long time = System.currentTimeMillis();
             //long delay = time - LAST_READ_ATTEMPT;
-            long delay = time - LAST_READ_ATTEMPT - READ_DELAY;
+            long delay = READ_DELAY - (time - LAST_READ_ATTEMPT);
             if( LAST_READ_ATTEMPT > 0 && delay > 0 ) {
                 try {
                     log.info("Waiting for " + delay + " ms before reading again");
