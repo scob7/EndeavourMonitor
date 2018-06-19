@@ -118,6 +118,8 @@ public class SensorService
         result.setMin( min );
         result.setMax( max );
         em.persist(result);
+        
+        sensorCache.put(serial, result);
         return result;
     }
 
