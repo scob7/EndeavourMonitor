@@ -52,7 +52,7 @@ public class JettyServer
 //        //context.setWelcomeFiles(new String[] { "dashboard.html" });
 //        context.addServlet(new ServletHolder(defaultServlet), "web/*");
         
-        Server server = new Server(8080);
+        Server server = new Server(80);
         server.setHandler(context);
 
         // Tells the Jersey Servlet which REST service/class to load.
