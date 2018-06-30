@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,6 +105,8 @@ public class W1SensorProvider implements SensorProvider {
         throw new IOException("Sensor " + id + " failed. Too Many retries");
     }
 
+    private static final int TEMP_PRECISION = 3;
+    
     public static float parseTemperature(final String value) throws Exception {
         String[] lines = value.split("\n");
         String statusLine = lines[0];
@@ -125,17 +126,24 @@ public class W1SensorProvider implements SensorProvider {
             throw new IOException( "Missing value line");
         }
         String valueLine = lines[1];
-        String[] valueLineValues = valueLine.split(" ");
-        String temp = valueLineValues[valueLineValues.length - 1];
-        if (temp.length() < 3) {
-            throw new IOException("Invalid temp: " + temp);
+        String tempValue = valueLine.split("=")[1];
+        int tempValueLen = tempValue.length();
+        //String[] valueLineValues = valueLine.split(" ");
+        //String temp = valueLineValues[valueLineValues.length - 1];
+        
+        // 15123 -> 15.123
+        // 9123 -> 9.123
+        // last 3 digits are always decimals
+        if (TEMP_PRECISION < 3) {
+            throw new IOException("Invalid temp: " + tempValue);
         }
-        temp = temp.substring(2);
-        if (temp.length() >= 2) {
-            temp = temp.substring(0, 2) + "." + temp.substring(2);
-        }
-        float result = (float)round( Double.parseDouble(temp), 10 );
-        return result;
+        
+        
+        int decimals = Integer.parseInt( tempValue.substring(tempValueLen-TEMP_PRECISION, tempValueLen) );
+        int temp = 0;
+        if( tempValueLen > TEMP_PRECISION )
+            temp = Integer.parseInt( tempValue.substring(0, tempValueLen-TEMP_PRECISION ));
+        return (float)round( temp + (decimals / Math.pow(10, TEMP_PRECISION)), 2 );
     }
 
     public static double round( double value, int scale) {
