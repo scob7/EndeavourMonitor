@@ -193,6 +193,16 @@
         </dependency>
     </dependencies>
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/webapp</directory>
+                <includes>
+                    <include>**/*.html</include>
+                    <include>**/*.js</include>
+                    <include>**/*.css</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -265,47 +275,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>1.8</version>
-                <executions>
-                    <execution>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <tasks>
-                                <!-- ensure the target directory exists on the Raspberry Pi -->
-                                <sshexec host="${pi.host}" port="${pi.port}" username="${pi.user}" password="${pi.password}" 
-                                         trust="true" failonerror="false" verbose="true" 
-                                         command="mkdir --parents ${pi.deployDirectory}"/>
-
-                                <!-- copy the JAR file to the Raspberry Pi -->
-                                <scp
-                                    file="${project.build.directory}/${project.build.finalName}-jar-with-dependencies.jar"
-                                    todir="${pi.user}:${pi.password}@${pi.host}:${pi.deployDirectory}"
-                                    port="${pi.port}" trust="true" verbose="true" failonerror="true">
-                                </scp> 
-
-                                <!-- run the JAR file on the Raspberry Pi -->
-                                <sshexec host="${pi.host}" port="${pi.port}" username="${pi.user}"
-                                         password="${pi.password}" trust="true" failonerror="false"
-                                         verbose="true" 
-                                         command="java -Xdebug -Xrunjdwp:transport=dt_socket,server=n,address=${jpda.address} -jar ${pi.deployDirectory}/${project.build.finalName}-jar-with-dependencies.jar"/>
-                            </tasks>
-                        </configuration>
-                    </execution>
-                </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.apache.ant</groupId>
-                        <artifactId>ant-jsch</artifactId>
-                        <version>1.9.6</version>
-                    </dependency>
-                </dependencies>
             </plugin>
         </plugins>
     </build>
