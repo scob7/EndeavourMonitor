@@ -138,7 +138,7 @@ public class W1SensorProvider implements SensorProvider {
         }
         
         double temp = Double.parseDouble( tempValue ) / Math.pow( 10, TEMP_PRECISION );
-        if( temp > Float.MAX_VALUE || temp < Float.MIN_VALUE )
+        if( temp > Float.MAX_VALUE || temp < -1 * Float.MAX_VALUE )
             throw new IOException( "Temperature cannot be converted to float: " + temp );
         return (float)round( temp, 1 );
     }
