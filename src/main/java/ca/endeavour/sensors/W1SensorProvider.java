@@ -127,23 +127,20 @@ public class W1SensorProvider implements SensorProvider {
         }
         String valueLine = lines[1];
         String tempValue = valueLine.split("=")[1];
-        int tempValueLen = tempValue.length();
         //String[] valueLineValues = valueLine.split(" ");
         //String temp = valueLineValues[valueLineValues.length - 1];
         
         // 15123 -> 15.123
         // 9123 -> 9.123
         // last 3 digits are always decimals
-        if (TEMP_PRECISION < 3) {
+        if (tempValue.length() < TEMP_PRECISION ) {
             throw new IOException("Invalid temp: " + tempValue);
         }
         
-        
-        int decimals = Integer.parseInt( tempValue.substring(tempValueLen-TEMP_PRECISION, tempValueLen) );
-        int temp = 0;
-        if( tempValueLen > TEMP_PRECISION )
-            temp = Integer.parseInt( tempValue.substring(0, tempValueLen-TEMP_PRECISION ));
-        return (float)round( temp + (decimals / Math.pow(10, TEMP_PRECISION)), 2 );
+        double temp = Double.parseDouble( tempValue ) / Math.pow( 10, TEMP_PRECISION );
+        if( temp > Float.MAX_VALUE || temp < Float.MIN_VALUE )
+            throw new IOException( "Temperature cannot be converted to float: " + temp );
+        return (float)round( temp, 1 );
     }
 
     public static double round( double value, int scale) {
