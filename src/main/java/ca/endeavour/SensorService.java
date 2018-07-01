@@ -264,8 +264,9 @@ public class SensorService
         }
         return result;
     }
-
-    @Scheduled(fixedDelay = 60000)
+    
+    private static final int SENSOR_READ_RATE = 1000 * 60; // 1 minute in millis
+    @Scheduled(fixedRate=SENSOR_READ_RATE)
     @Transactional
     public void pollSensors()
     {
