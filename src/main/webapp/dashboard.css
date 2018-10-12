@@ -1,0 +1,61 @@
+#sensorChartWrapper{
+    width: 100%;
+    height: 550px;
+}
+
+#sensorChartWrapper #sensorChart{
+    height:100%;
+    cursor: grab;
+}
+
+#sensors {
+    margin: 0px !important;
+    min-height: 150px;
+}
+
+
+#sensors .sensor.alert .statistic .value {
+    -webkit-animation: ALERT 1s infinite;  /* Safari 4+ */
+    -moz-animation: ALERT 1s infinite;  /* Fx 5+ */
+    -o-animation: ALERT 1s infinite;  /* Opera 12+ */
+    animation: ALERT 1s infinite;  /* IE 10+, Fx 29+ */
+}
+
+@-webkit-keyframes ALERT {
+    0%, 49% {
+        color: #ffffff;
+    }
+    50%, 100% {
+        color: #9e1919;
+    }
+}
+
+#sensors .sensor .header{
+    font-size: 1.5em !important;
+}
+
+#sensors .card .content{
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+#sensors .sensor .header, 
+#sensors .sensor .statistic .value,
+#sensors .sensor .statistic .label,
+#sensors .sensor .content{
+    color: #ffffff;
+}
+
+#sensors .sensor.showOnGraph{
+    border-color: #717171;
+    border-style: solid;
+}
+
+#unregisteredMessage .ui.message{
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
+
+#unregisteredMessage:hover{
+    cursor: pointer;
+}

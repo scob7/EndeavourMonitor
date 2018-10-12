@@ -119,15 +119,16 @@ public class RestApi {
     }
 
     @GET
-    @Path("sensor/{sensorid}/timeseries/{interval}")
+    @Path("sensor/{sensorid}/timeseries/{interval}/{timeseries}")
     @Produces(MediaType.APPLICATION_JSON)
     public String timesseries(
             @PathParam("sensorid") final long sensorid,
-            @PathParam("interval") String intervalParam,
+            @PathParam("interval") int interval,
+            @PathParam("timeseries") String timeseriesParam,
             @QueryParam("begin") String beginParam,
             @QueryParam("end") String endParam) {
-        SensorService.TimeInterval interval = SensorService.TimeInterval.valueOf(intervalParam);
-        if( interval == null)
+        SensorService.TimeSeries timeseries = SensorService.TimeSeries.valueOf(timeseriesParam);
+        if( timeseriesParam == null)
             throw new BadRequestException("Invalid time interval " + interval );
         
         Calendar begin = DatatypeConverter.parseDateTime(beginParam);
@@ -138,7 +139,7 @@ public class RestApi {
         if( end == null )
             throw new BadRequestException("Invalid end date " + endParam );
 
-        JsonArray result = sensorService.queryTemperatureTimeseries(sensorid, begin.getTime(), end.getTime(), interval );
+        JsonArray result = sensorService.queryTemperatureTimeseries(sensorid, begin.getTime(), end.getTime(), timeseries, interval );
         return result.toString();
     }
 

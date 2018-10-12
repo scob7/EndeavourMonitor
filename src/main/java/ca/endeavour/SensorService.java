@@ -31,6 +31,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import javax.persistence.Query;
 import javax.persistence.Tuple;
 import org.slf4j.Logger;
@@ -187,20 +188,58 @@ public class SensorService
         return query.getResultList();
     }
     
-    public static enum TimeInterval{
+    public static enum TimeSeries{
         minute, hour, day, week, month, year
     }
     
-    public JsonArray queryTemperatureTimeseries( long sensorid, Date begin, Date end, TimeInterval interval )
+    public JsonArray queryTemperatureTimeseries( long sensorid, Date begin, Date end, TimeSeries timeseries, int interval )
     {
+        Calendar cbegin = Calendar.getInstance();
+        cbegin.setTime(begin);
+        cbegin.set( Calendar.MILLISECOND, 0 );
+        Calendar cend = Calendar.getInstance();
+        cend.setTime(end);
+        cend.set( Calendar.MILLISECOND, 0);
+        
+        if( timeseries.ordinal() >= TimeSeries.minute.ordinal() )
+        {
+            cbegin.set( Calendar.SECOND, 0);
+            cend.set( Calendar.SECOND, 0);
+        }  
+        
+        if( timeseries.ordinal() >= TimeSeries.hour.ordinal() )
+        {
+            cbegin.set( Calendar.MINUTE, cbegin.getActualMinimum( Calendar.MINUTE ));
+            cend.set( Calendar.MINUTE, cend.getActualMaximum( Calendar.HOUR_OF_DAY));
+        }
+        
+        if( timeseries.ordinal() >= TimeSeries.day.ordinal() )
+        {
+            cbegin.set( Calendar.HOUR_OF_DAY, cbegin.getActualMinimum( Calendar.HOUR_OF_DAY ));
+            cend.set( Calendar.HOUR_OF_DAY, cend.getActualMaximum( Calendar.HOUR_OF_DAY) );
+        }
+        
+        if( timeseries.ordinal() >= TimeSeries.month.ordinal() )
+        {
+            cbegin.set( Calendar.DATE, cbegin.getActualMinimum( Calendar.DATE ));
+            cend.set( Calendar.DATE, cend.getActualMaximum( Calendar.DATE));
+        }
+        
+        if( timeseries.ordinal() >= TimeSeries.year.ordinal() )
+        {
+            cbegin.set( Calendar.MONTH, cbegin.getActualMinimum(Calendar.MONTH ));
+            cend.set( Calendar.MONTH, cend.getActualMaximum( Calendar.MONTH));
+        }
+        
+        
         SimpleDateFormat postgresFormat = new SimpleDateFormat( "YYYY-MM-dd HH:mm" );
         //String seriesName = series.name().toLowerCase();
-        String psBegin = postgresFormat.format(begin);
-        String psEnd = postgresFormat.format(end);
+        String psBegin = postgresFormat.format(cbegin.getTime());
+        String psEnd = postgresFormat.format(cend.getTime());
         //
        String sql = "SELECT timeseries, temp AS temp"//coalesce(temp,0) AS temp"
-               + " FROM generate_series( '" + psBegin + "'\\:\\:timestamp, '" + psEnd + "'\\:\\:timestamp, '1 " + interval.name() + "' ) AS timeseries"
-               + " LEFT OUTER JOIN (SELECT date_trunc('" + interval.name() + "', timestamp) as interval"
+               + " FROM generate_series( '" + psBegin + "'\\:\\:timestamp, '" + psEnd + "'\\:\\:timestamp, '" + interval + " " + timeseries.name() + "' ) AS timeseries"
+               + " LEFT OUTER JOIN (SELECT date_trunc('" + timeseries.name() + "', timestamp) as interval"
                + " , avg(temperature) as temp"
                + " FROM events WHERE sensorid = " + sensorid
                + " AND timestamp >= '" + psBegin + "' AND timestamp < '" + psEnd + "'"

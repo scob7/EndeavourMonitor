@@ -14,325 +14,12 @@ and open the template in the editor.
         <script src="/moment/moment.js"></script>
         <script src="/semantic-ui/semantic.js"></script>
         <link rel="stylesheet" href="/semantic-ui/semantic.css">
-        <!--<script src="/dashboard.js">-->
-        <style>
-            #sensorChartWrapper{
-                width: 100%;
-                height: 400px;
-            }
-            
-            #sensors {
-                margin: 0px !important;
-                min-height: 150px;
-            }
-            
-            #sensors .sensor.alert .statistic .value {
-                -webkit-animation: ALERT 1s infinite;  /* Safari 4+ */
-                -moz-animation: ALERT 1s infinite;  /* Fx 5+ */
-                -o-animation: ALERT 1s infinite;  /* Opera 12+ */
-                animation: ALERT 1s infinite;  /* IE 10+, Fx 29+ */
-             }
-
-            @-webkit-keyframes ALERT {
-              0%, 49% {
-                color: #ffffff;
-              }
-              50%, 100% {
-                color: #9e1919;
-              }
-            }
-            
-            #sensors .sensor .header{
-                font-size: 1.5em !important;
-            }
-            
-            #sensors .sensor .header, 
-            #sensors .sensor .statistic .value,
-            #sensors .sensor .statistic .label,
-            #sensors .sensor .content{
-                color: #ffffff;
-            }
-            
-            #sensors .sensor.showOnGraph{
-                border-color: #717171;
-                border-style: solid;
-            }
-            
-            #unregisteredMessage:hover{
-                cursor: pointer;
-            }
-        </style>
-        <script type="application/javascript">
-
-            $(function () {
-               
-                var sensors = [];
-                var sensorColors = ["#50b13f","#2597ce","#ce8325","#5e25ce","#b425ce","#ce2563","#ffcc00","#ff9900","#ff6699"];
-                var sensorData = {
-                    labels: [],
-                    datasets: []
-                };
-                var ctx = document.getElementById('sensorChart').getContext('2d');
-                var chart = new Chart(ctx, {
-                    type: 'line',
-                    data: sensorData,
-                    options: {
-                        //animation: false,
-                        scales: {
-                            yAxes: [{
-                                    ticks: {
-                                        //beginAtZero: true,
-                                        //min: -20,
-                                        //max: 110
-                                    },
-                                    
-                                }]
-                        }
-                    }
-                });
-                
-                var $sensors = $("#sensors");
-                var $sensorTemplate = $("#sensorTemplate");
-                var refreshSensors = function(){
-                    return $.ajax({
-                       url : "/rest/api/sensors",
-                       success: function( result ){
-                           sensors = result;
-                           renderSensors();
-                       }
-                    });
-                };
-                
-                $sensors.on( "click", ".sensor", function(){
-                    $(this).toggleClass("showOnGraph");
-                    refreshChart();
-                });
-                
-                var renderSensors = function(){
-                    //$sensors.empty();
-                    for( var i=0; i < sensors.length; i++ )
-                    {
-                        var sensor = sensors[i];
-                        var $sensor = $sensors.find("#" + sensor.id );
-                        //var append = false;
-                        if( $sensor.length === 0 )
-                        {
-                            $sensor = $sensorTemplate.clone();
-                            $sensor.removeAttr("style");
-                            $sensor.attr("id", sensor.id );
-                            $sensor.css("background-color", sensorColors[i]);
-                            $sensors.append( $sensor );
-                            $sensor.addClass("showOnGraph");
-                            //$sensors.find(".ui.checkbox").checkbox();
-                        }
-                        $sensor.find(".name").text( sensor.name );
-                        if( sensor.type === 1)
-                        {
-                            $sensor.find(".sensorValue").text( sensor.temp );
-                            $sensor.find(".sensorUnits").text( "Celcius" );
-                            if( sensor.min !== null || sensor.max !== null)
-                            {
-                                $sensor.find(".min").text( sensor.min );
-                                $sensor.find(".max").text( sensor.max );
-                                if( sensor.min !== null && sensor.temp <= sensor.min )
-                                    $sensor.addClass("alert");
-                                else if( sensor.max !== null && sensor.temp >= sensor.max )
-                                    $sensor.addClass("alert");                
-                                else
-                                    $sensor.removeClass("alert");
-                            }
-                        }
-                    }
-                };
-
-                var refreshChart = function()
-                {
-                    var promises = [];
-                    for( var i = 0; i < sensors.length; i++ )
-                    {
-                        var sensor = sensors[i];
-                        var $sensor = $sensors.find("#" + sensor.id);
-                        if( $sensor.hasClass("showOnGraph") )
-                        {
-                            promises.push( refreshSensorData( sensor ) );
-                        }
-                        else
-                        {
-                            for( var j=0; j < sensorData.datasets.length; j++ )
-                            {
-                                var dataset = sensorData.datasets[j];
-                                if( dataset.sensorId === sensor.id )
-                                    sensorData.datasets.splice(j, 1);
-                            }
-                        }
-                    }
-                    $.when.apply( $, promises ).then( function(){
-                        chart.update(0);
-                    });
-                };
-                
-                var getBeginDate = function()
-                {
-                    var begin = new Date();
-                    //begin.setHours( begin.getHours() - 24 );
-                    //begin.setMinutes( 0 );
-                    begin.setMinutes( begin.getMinutes() - 60 );
-                    begin.setSeconds( 0 );
-                    return begin;
-                };
-                
-                var getEndDate = function()
-                {
-                    return new Date();
-                };
-                
-                var getTimeInterval = function()
-                {
-                    //return "hour";
-                    return "minute";
-                };
-                
-                var getSensorDataset = function ( sensor )
-                {
-                    for( var i=0; i < sensorData.datasets.length; i++ )
-                    {
-                        var dataset = sensorData.datasets[i];
-                        if( dataset.sensorId === sensor.id )
-                            return dataset;
-                    }
-                    var color = $sensors.find("#" + sensor.id).css("background-color");
-                    var dataset = {
-                        label : sensor.name,
-                        data: [],
-                        fill: false,
-                        sensorId: sensor.id,
-                        borderColor: color,
-                        backgroundColor: color
-                    };
-                    sensorData.datasets.push( dataset );
-                    return dataset;
-                };
-                
-                var refreshSensorData = function ( sensor )
-                {
-                    var begin = getBeginDate();
-                    var end = getEndDate();
-                    var interval = getTimeInterval();
-                    var url = "/rest/api/sensor/" + sensor.id 
-                            + "/timeseries/" + interval
-                            + "?begin=" + begin.toISOString()
-                            + "&end=" + end.toISOString();
-                    
-                    return $.ajax({
-                        url: url,
-                        dataType: "json",
-                        success: function ( timeseries ) {
-                            //data.datasets = [];
-                            var dataset = getSensorDataset( sensor );
-//                            var alert = {
-//                               label: "Sensor Alert",
-//                               data: [],
-//                               fill: false,
-//                               borderColor: "#ff2323"
-//                            };
-                            //json
-                            dataset.data = [];
-                            sensorData.labels = [];
-                            for (var i = 0; i < timeseries.length; i++)
-                            {
-                                var point = timeseries[i];
-                                sensorData.labels.push(moment(point.timestamp).format("DD MMM HH:mm"));
-                                dataset.data.push(point.temp);
-                                //alert.data.push(45);
-                            }
-                            //window.sensorsChart.update();
-                        }
-                    });
-                };
-
-                var chartInterval;
-                var sensorsInterval;
-                refreshSensors().then( refreshChart ).then( function(){
-                    chartInterval = setInterval( refreshChart, 1000 * 60 );
-                    sensorsInterval = setInterval( refreshSensors, 1000 * 5 );
-                });
-                
-                var $unregisteredMessage = $("#unregisteredMessage");
-                var $registerSensorsModal = $("#registerSensorsModal").modal();
-                var $unregisteredSensors = $registerSensorsModal.find("#unregisteredSensors");
-                var $unregisteredSensorTemplate = $registerSensorsModal.find("#unregisteredSensorTemplate");
-                var $registerSensorMessage = $registerSensorsModal.find(".message");
-                var refreshUnregisteredSensors = function(){
-                    $.ajax({
-                        url: "/rest/api/sensors/unregistered",
-                        success: function( sensors ){
-                            if( sensors.length > 0 )
-                            {
-                                $unregisteredMessage.text( "You have " + sensors.length + " unregistered sensors. Click here to configure.");
-                                $unregisteredMessage.removeAttr("style");
-                                
-                                $unregisteredSensors.empty();
-                                for( var i=0; i < sensors.length; i++ )
-                                {
-                                    var sensor = sensors[i];
-                                    var $sensor = $unregisteredSensorTemplate.clone();
-                                    $sensor.removeAttr("style");
-                                    $sensor.attr("id", sensor.serial );
-                                    $sensor.find(".serial").text( sensor.serial );
-                                    $sensor.find(".value" ).text( sensor.temp );
-                                    $sensor.find(".registerSensor").attr("data-serial", sensor.serial ).attr("data-type", "1" );
-                                    
-                                    $unregisteredSensors.append( $sensor );
-                                }
-                            }
-                            else
-                                $unregisteredMessage.attr("style","display:none");
-                        }
-                    });
-                };
-                refreshUnregisteredSensors();
-                $unregisteredMessage.click( function(){
-                    $registerSensorMessage.attr("style","display:none");
-                    $registerSensorsModal.modal("show");
-                });
-                
-                $registerSensorsModal.find("#refreshSensors").click( function(){
-                    refreshUnregisteredSensors();
-                });
-                
-                $registerSensorsModal.on( "click", ".registerSensor", function(){
-                    var $this = $(this);
-                    var serial = $this.attr("data-serial");
-                    var $sensor = $this.closest(".sensor");
-                    var name = $sensor.find("input[name=name]").val();
-                    var min = $sensor.find("input[name=min]").val();
-                    var max = $sensor.find("input[name=max]").val();
-                    var type = 1;//$sensor.attr("data-type");
-                    
-                    $.ajax({
-                        method: "POST",
-                        url: "/rest/api/sensor/register/" + serial + "?name=" + name + "&type=" + type + "&min=" + min + "&max=" + max,
-                        dataType: "json",
-                        success: function( sensor ){
-                            $registerSensorMessage.removeClass("error").addClass("success");
-                            $registerSensorMessage.text( sensor.name + " registered!" );
-                            $registerSensorMessage.removeAttr("style");
-                            refreshUnregisteredSensors();
-                        },
-                        error: function( jqXHR, textStatus, errorThrown ){
-                            $registerSensorMessage.removeClass("success").addClass("error");
-                            $registerSensorMessage.text( "Failed to register " + name + ".\nCause: " + errorThrown );
-                            $registerSensorMessage.removeAttr("style");
-                            refreshUnregisteredSensors();
-                        }
-                    });
-                });
-            });
-        </script>
+        <script src="./dashboard.js"></script>
+        <link rel="stylesheet" href="./dashboard.css">
     </head>
     <body>
         <div class="ui page">
-            <div id="sensors" class="ui eight cards" >
+            <div id="sensors" class="ui ten cards" >
                 <div id="sensorTemplate"  class="sensor fluid card" style="display:none">
                     <div class="center aligned content">
                         <div class="header">
@@ -340,7 +27,7 @@ and open the template in the editor.
                         </div>
                     </div>
                     <div class="content">
-                        <div class="ui one small statistics">
+                        <div class="ui one tiny statistics">
                             <div class="ui statistic">
                                 <div class="value sensorValue"></div>
                                 <div class="label sensorUnits"></div>
@@ -363,34 +50,39 @@ and open the template in the editor.
                     -->
                 </div>
             </div>
-            <div id="unregisteredMessage" class="ui warning message" style="display:none;">
+            <div class="ui two column grid">
                 
+                <div class="column">
+                    <div id="unregisteredMessage" class="ui warning message" style="display:none;"></div>
+                </div>
+                <div class="right aligned column">
+                    <div id="timeseries" class="ui buttons">
+                        <button class="ui active button" data-interval="1" data-timeseries="minute" data-begin="60" data-format="h:mm a" >1H</button>
+                        <button class="ui button" data-interval="2" data-timeseries="minute" data-begin="120" data-format="h:mm a">2H</button>
+                        <button class="ui button" data-interval="4" data-timeseries="minute" data-begin="240" data-format="h:mm a">4H</button>
+                        <button class="ui button" data-interval="20" data-timeseries="minute" data-begin="1440" data-format="MMM D h:mm a">1D</button>
+                        <button class="ui button" data-interval="1" data-timeseries="hour" data-begin="168" data-format="MMM D h a">1W</button>
+                        <button class="ui button" data-interval="2" data-timeseries="hour" data-begin="336" data-format="MMM D hh a">2W</button>
+                    </div>
+                    <div id="timeinfo"></div>
+                </div>
             </div>
             <div id="sensorChartWrapper" >
                 <canvas id="sensorChart"></canvas>
             </div>
-
         </div>
         <div id="registerSensorsModal" class="ui modal">
-            <div class="content">
-                <div class="ui two column grid">
-                <div class="column">
-                    <div class="ui header">
-                        Unregistered Sensors
-                    </div>
-                </div>
-                <div class="right aligned column">
-                    <button id="refreshSensors" class="ui orange button">Refresh</button>
-                </div>
-                </div>
+            <div class="ui header">
+                Unregistered Sensors
             </div>
             <div class="scrolling content">
                 <div class="ui message" style="display:none;">
-                    
+
                 </div>
                 <div id="unregisteredSensors" class="ui one column vertically divided grid"></div>
             </div>
             <div class="actions">
+                <button id="refreshSensors" class="ui left floated orange button">Refresh</button>
                 <button class="ui blue button">Done</button>
             </div>
             <div id="unregisteredSensorTemplate" class="sensor row" style="display: none;">
