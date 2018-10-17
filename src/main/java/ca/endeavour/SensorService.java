@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import javax.persistence.Query;
-import javax.persistence.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -49,19 +48,15 @@ public class SensorService
 {
     @PersistenceContext
     private EntityManager em;
-
-    @Inject
-    private TaskScheduler scheduler;
     
     @Inject
     private SensorProvider sensorProvider;
     
     private static final Logger log = LoggerFactory.getLogger(SensorService.class);
     
-    private final W1Master w1 = new W1Master();
     //@Inject
     private final Map<String,Sensor> sensorCache = new ConcurrentHashMap<>();
-    
+   
 
 //    public static Event success( Device device, String value )
 //    {
@@ -310,6 +305,7 @@ public class SensorService
     @Transactional
     public void pollSensors()
     {
+        log.info("Starting to poll sensors...");
         List<AbstractSensor> sensors = sensorProvider.readSensors();
         Iterator<AbstractSensor> iter = sensors.iterator();
         while (iter.hasNext())
@@ -331,6 +327,7 @@ public class SensorService
 
             log(sensorEntity, sensor);
         }
+        log.info("Finished polling sensors...");
     }
 
     //@PostInitialize

@@ -18,6 +18,8 @@
         <pi.password>raspberry</pi.password>
         <pi.deployDirectory>/home/pi/artifacts</pi.deployDirectory>
         <pi.main.class>ca.endeavour.JettyServer</pi.main.class>
+        <spring.version>4.3.19.RELEASE</spring.version>
+        <jersey.version>2.27</jersey.version>
     </properties>
     
     <dependencies>
@@ -42,28 +44,28 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
-            <version>4.3.8.RELEASE</version>
+            <version>${spring.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
-            <version>4.3.8.RELEASE</version>
+            <version>${spring.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-            <version>4.3.8.RELEASE</version>
+            <version>${spring.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-jpa</artifactId>
-            <version>1.11.3.RELEASE</version>
+            <version>2.1.0.RELEASE</version>
         </dependency>
         
         <dependency>
             <groupId>org.glassfish.jersey.ext</groupId>
             <artifactId>jersey-spring4</artifactId>
-            <version>2.26-b04</version>
+            <version>${jersey.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.springframework</groupId>
@@ -92,12 +94,12 @@
         <dependency>
             <groupId>org.glassfish.jersey.core</groupId>
             <artifactId>jersey-server</artifactId>
-            <version>2.26-b04</version>
+            <version>${jersey.version}</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.containers</groupId>
             <artifactId>jersey-container-jetty-http</artifactId>
-            <version>2.26-b04</version>
+            <version>${jersey.version}</version>
         </dependency>
         <!--
         
@@ -130,7 +132,7 @@
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.8.0</version>
+            <version>2.8.5</version>
         </dependency>
         
         <dependency>
