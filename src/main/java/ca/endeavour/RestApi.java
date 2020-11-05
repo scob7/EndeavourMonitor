@@ -47,6 +47,16 @@ public class RestApi {
     public String test() {
         return "hello";
     }
+    
+    @GET
+    @Path("servertime")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String serverTime()
+    {
+        Calendar now = Calendar.getInstance();
+        //now.set(Calendar.YEAR, 1969);
+        return DatatypeConverter.printDateTime( now );
+    }
 
     @GET
     @Path("sensors")
@@ -179,6 +189,29 @@ public class RestApi {
         //if( sensor == null )
         //    throw new NotFoundException("Sensor " + serial + " not found");
         Sensor result = sensorService.registerSensor(serial.trim(), name.trim(), type, min, max);
+        return result.toJSON().toString();
+    }
+    
+    @PUT
+    @Path("/sensor/{id}")
+    //@Consumes(MediaType.APPLICATION_JSON)
+    public String updateSensor(
+            @PathParam("id") long id,
+            @QueryParam("serial") String serial,
+            @QueryParam("name") String name,
+            @QueryParam("type") int type,
+            @QueryParam("min") String minParam,
+            @QueryParam("max") String maxParam) {
+        Float min = null;
+        Float max = null;
+        if (minParam != null) {
+            min = Float.parseFloat(minParam);
+        }
+        if (maxParam != null) {
+            max = Float.parseFloat(maxParam);
+        }
+        
+        Sensor result = sensorService.updateSensor(id, serial.trim(), name.trim(), type, min, max);
         return result.toJSON().toString();
     }
 }

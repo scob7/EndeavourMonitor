@@ -4,7 +4,8 @@ writing logs to /opt/endeavour-monitor/log.txt
 # command to reload changes to /etc/init.d/endeavour-monitor
 sudo systemctl daemon-reload
 
-sudo service endeavour-monitor start|stop|restart
+#sudo service endeavour-monitor start|stop|restart
+sudo systemctl restart endeavour-monitor
 
 #enable service at startup
 sudo update-rc.d endeavour-monitor defaults 

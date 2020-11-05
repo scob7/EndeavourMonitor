@@ -21,6 +21,13 @@
     animation: ALERT 1s infinite;  /* IE 10+, Fx 29+ */
 }
 
+#serverTime.warning{
+    -webkit-animation: ALERT 1s infinite;  /* Safari 4+ */
+    -moz-animation: ALERT 1s infinite;  /* Fx 5+ */
+    -o-animation: ALERT 1s infinite;  /* Opera 12+ */
+    animation: ALERT 1s infinite;  /* IE 10+, Fx 29+ */
+}
+
 @-webkit-keyframes ALERT {
     0%, 49% {
         color: #ffffff;

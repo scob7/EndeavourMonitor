@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import javax.persistence.Query;
+import javax.persistence.criteria.CriteriaBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -103,18 +104,40 @@ public class SensorService
     }
     
     @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Sensor updateSensor( long id, String serial, String name, int type, Float min, Float max )
+    {
+        //CriteriaBuilder cb = em.getCriteriaBuilder();
+        //cb.equal( Sensor_., cb)
+        //em.createQuery( Sensor.class, serial );
+        //TypedQuery<Sensor> query = em.createQuery("SELECT Sensor s WHERE s.serial = :serial", Sensor.class );
+        //query.setParameter("serial", serial);
+        Sensor sensor = em.find(Sensor.class, id);//query.getSingleResult();
+        sensor.setSerial( serial );
+        sensor.setType( type );
+        sensor.setName( name );
+        sensor.setMin( min );
+        sensor.setMax( max );
+        em.merge(sensor);
+        
+        sensorCache.put(serial, sensor);
+        return sensor;
+    }
+    
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Sensor registerSensor( String serial, String name, int type, Float min, Float max )
     {
-        Sensor result = new Sensor();
-        result.setSerial(serial);
-        result.setName(name);
-        result.setType(type);
-        result.setMin( min );
-        result.setMax( max );
-        em.persist(result);
         
-        sensorCache.put(serial, result);
-        return result;
+        //em.createQuery( Sensor.class, serial );
+        Sensor sensor = new Sensor();
+        sensor.setSerial(serial);
+        sensor.setName(name);
+        sensor.setType(type);
+        sensor.setMin( min );
+        sensor.setMax( max );
+        em.persist(sensor);
+        
+        sensorCache.put(serial, sensor);
+        return sensor;
     }
 
     @Transactional(readOnly = true)

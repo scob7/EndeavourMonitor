@@ -14,6 +14,7 @@ import org.eclipse.jetty.servlet.DefaultServlet;
 
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.util.resource.Resource;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 
@@ -44,12 +45,12 @@ public class JettyServer
         jaxrs.setInitOrder(0);
         
         ServletHolder staticServlet = context.addServlet(DefaultServlet.class,"/*");
-        staticServlet.setInitParameter("resourceBase","src/main/webapp");
+        //staticServlet.setInitParameter("resourceBase","jar:file:!/webapp");
         staticServlet.setInitParameter("pathInfoOnly","true");
 //        DefaultServlet defaultServlet = new DefaultServlet();
 //        URL url = JettyServer.class.getClassLoader().getResource("/web");
-//        context.setBaseResource(Resource.newResource(url));
-//        //context.setWelcomeFiles(new String[] { "dashboard.html" });
+        context.setBaseResource( Resource.newClassPathResource("/webapp")  ); //"jar:file:!/webapp");
+        context.setWelcomeFiles(new String[] { "dashboard.html" });
 //        context.addServlet(new ServletHolder(defaultServlet), "web/*");
         
         Server server = new Server(80);

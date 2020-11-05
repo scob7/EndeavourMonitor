@@ -19,6 +19,7 @@ and open the template in the editor.
     </head>
     <body>
         <div class="ui page">
+            <div id="unregisteredMessage" class="ui warning message" style="display:none;"></div>
             <div id="sensors" class="ui ten cards" >
                 <div id="sensorTemplate"  class="sensor fluid card" style="display:none">
                     <div class="center aligned content">
@@ -51,9 +52,9 @@ and open the template in the editor.
                 </div>
             </div>
             <div class="ui two column grid">
-                
                 <div class="column">
-                    <div id="unregisteredMessage" class="ui warning message" style="display:none;"></div>
+                    <div>Server time: <b id="serverTime"></b></div>
+                    <div><a id="editSensors" href="">Edit sensors</a></div>
                 </div>
                 <div class="right aligned column">
                     <div id="timeseries" class="ui buttons">
@@ -75,39 +76,57 @@ and open the template in the editor.
             <div class="ui header">
                 Unregistered Sensors
             </div>
-            <div class="scrolling content">
-                <div class="ui message" style="display:none;">
+            <div class="ui message" style="display:none;">
 
+            </div>
+            <div class="scrolling content">
+                <div class="ui sensors one column vertically divided grid">
+                    <!-- sensors go here using template -->
                 </div>
-                <div id="unregisteredSensors" class="ui one column vertically divided grid"></div>
             </div>
             <div class="actions">
                 <button id="refreshSensors" class="ui left floated orange button">Refresh</button>
-                <button class="ui blue button">Done</button>
+                <button class="ui blue done button">Done</button>
             </div>
-            <div id="unregisteredSensorTemplate" class="sensor row" style="display: none;">
-                <div class="twelve wide column" >
-                    <h2><span class="serial"></span> (temp <span class="value"></span>)</h2>
-                    <div class="ui form">
+        </div>
+        <div id="editSensorsModal" class="ui modal">
+            <div class="ui header">
+                Edit Sensors
+            </div>
+            <div class="ui message" style="display:none;">
+
+            </div>
+            <div class="scrolling content">
+                <div class="ui sensors one column vertically divided grid">
+                    <!-- sensors go here using template -->
+                </div>
+            </div>
+            <div class="actions">
+                <button class="ui blue done button">Done</button>
+            </div>
+        </div>
+        <div id="editSensorTemplate" class="sensor row" style="display: none;">
+            <div class="twelve wide column" >
+                <h2><span class="serial"></span> (temp <span class="value"></span>)</h2>
+                <div class="ui form">
+                    <div class="field">
+                        <label>Name</label>
+                        <input class="ui input" type="text" name="name">
+                    </div>
+                    <div class="two fields">
                         <div class="field">
-                            <label>Name</label>
-                            <input class="ui input" type="text" name="name">
+                            <label>Min</label>
+                            <input class="ui input" type="text" name="min">
                         </div>
-                        <div class="two fields">
-                            <div class="field">
-                                <label>Min</label>
-                                <input class="ui input" type="text" name="min">
-                            </div>
-                            <div class="field">
-                                <label>Max</label>
-                                <input class="ui input" type="text" name="max">
-                            </div>
+                        <div class="field">
+                            <label>Max</label>
+                            <input class="ui input" type="text" name="max">
                         </div>
                     </div>
                 </div>
-                <div class="four wide middle aligned right aligned column">
-                    <button class="ui registerSensor green button">Add</button>
-                </div>
+            </div>
+            <div class="four wide middle aligned right aligned column">
+                <button class="ui saveSensor green button">Save</button>
             </div>
         </div>
     </body>

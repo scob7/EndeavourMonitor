@@ -46,7 +46,7 @@ $(function () {
             success: function (result) {
                 sensors = result;
                 renderSensors();
-                return null;
+                return result;
             }
         });
     };
@@ -159,76 +159,78 @@ $(function () {
 
         var format = $activeTimeseries.attr("data-format");
 
-        var beginOffset = 0;
-        var endOffset = 0;
-        if (!scroll) {
-            console.info("Reset dates to now");
-            chartBegin = new Date();
-            chartEnd = new Date();
-            beginOffset = beginInterval;
-            endOffset = Math.round(beginInterval * timeseriesEndPadding);
-            ;
-        } else
-        {
-            beginOffset = Math.round(beginInterval * scroll);
-            endOffset = -1 * Math.round(beginInterval * scroll);
-        }
-
-        console.info("Begin offset: " + beginOffset + " " + timeseries);
-        console.info("End offset: " + endOffset + " " + timeseries);
-        if (timeseries === timescale_minutes)
-        {
-            chartBegin.setMinutes(chartBegin.getMinutes() - beginOffset);
-            chartEnd.setMinutes(chartEnd.getMinutes() + endOffset);
-
-        } else if (timeseries === timescale_hourly)
-        {
-            chartBegin.setHours(chartBegin.getHours() - beginOffset);
-            chartEnd.setHours(chartEnd.getHours() + endOffset);
-
-        } else if (timeseries === timescale_daily)
-        {
-            chartBegin.setDate(chartBegin.getDate() - beginOffset);
-            chartEnd.setDate(chartEnd.getDate() + endOffset);
-
-        } else if (timeseries === timescale_weekly)
-        {
-            chartBegin.setDate(chartBegin.getDate() - (beginOffset * 7));
-            chartEnd.setDate(chartEnd.getDate() + (endOffset * 7));
-        } else if (timeseries === timescale_monthly)
-        {
-            chartBegin.setMonth(chartBegin.getMonth() - beginOffset);
-            chartEnd.setMonth(chartEnd.getMonth() + endOffset);
-        } else if (timeseries === timescale_yearly)
-        {
-            chartBegin.setYear(chartBegin.getYesr() - beginOffset);
-            chartEnd.setYesr(chartEnd.getYear() + endOffset);
-        }
-
-        console.info("begin: " + chartBegin.toString());
-        console.info("end: " + chartEnd.toString());
-
-        var promises = [];
-        for (var i = 0; i < sensors.length; i++)
-        {
-            var sensor = sensors[i];
-            var $sensor = $sensors.find("#" + sensor.id);
-            if ($sensor.hasClass("showOnGraph"))
+        refreshServerTime( function( date ){
+            var beginOffset = 0;
+            var endOffset = 0;
+            if (!scroll) {
+                console.info("Reset dates to now");
+                chartBegin = new Date();
+                chartEnd = new Date();
+                beginOffset = beginInterval;
+                endOffset = Math.round(beginInterval * timeseriesEndPadding);
+            } 
+            else
             {
-                promises.push(refreshSensorData(sensor, interval, timeseries, chartBegin, chartEnd, format));
-            } else
+                beginOffset = Math.round(beginInterval * scroll);
+                endOffset = -1 * Math.round(beginInterval * scroll);
+            }
+
+            console.info("Begin offset: " + beginOffset + " " + timeseries);
+            console.info("End offset: " + endOffset + " " + timeseries);
+            if (timeseries === timescale_minutes)
             {
-                for (var j = 0; j < sensorData.datasets.length; j++)
+                chartBegin.setMinutes(chartBegin.getMinutes() - beginOffset);
+                chartEnd.setMinutes(chartEnd.getMinutes() + endOffset);
+
+            } else if (timeseries === timescale_hourly)
+            {
+                chartBegin.setHours(chartBegin.getHours() - beginOffset);
+                chartEnd.setHours(chartEnd.getHours() + endOffset);
+
+            } else if (timeseries === timescale_daily)
+            {
+                chartBegin.setDate(chartBegin.getDate() - beginOffset);
+                chartEnd.setDate(chartEnd.getDate() + endOffset);
+
+            } else if (timeseries === timescale_weekly)
+            {
+                chartBegin.setDate(chartBegin.getDate() - (beginOffset * 7));
+                chartEnd.setDate(chartEnd.getDate() + (endOffset * 7));
+            } else if (timeseries === timescale_monthly)
+            {
+                chartBegin.setMonth(chartBegin.getMonth() - beginOffset);
+                chartEnd.setMonth(chartEnd.getMonth() + endOffset);
+            } else if (timeseries === timescale_yearly)
+            {
+                chartBegin.setYear(chartBegin.getYesr() - beginOffset);
+                chartEnd.setYesr(chartEnd.getYear() + endOffset);
+            }
+
+            console.info("begin: " + chartBegin.toString());
+            console.info("end: " + chartEnd.toString());
+
+            var promises = [];
+            for (var i = 0; i < sensors.length; i++)
+            {
+                var sensor = sensors[i];
+                var $sensor = $sensors.find("#" + sensor.id);
+                if ($sensor.hasClass("showOnGraph"))
                 {
-                    var dataset = sensorData.datasets[j];
-                    if (dataset.sensorId === sensor.id)
-                        sensorData.datasets.splice(j, 1);
+                    promises.push(refreshSensorData(sensor, interval, timeseries, chartBegin, chartEnd, format));
+                } else
+                {
+                    for (var j = 0; j < sensorData.datasets.length; j++)
+                    {
+                        var dataset = sensorData.datasets[j];
+                        if (dataset.sensorId === sensor.id)
+                            sensorData.datasets.splice(j, 1);
+                    }
                 }
             }
-        }
-        $.when.apply($, promises).then(function () {
-            chart.update(0);
-            $timeinfo.text("Averaging data every " + interval + " " + timeseries + (interval > 1 ? "s" : ""));
+            $.when.apply($, promises).then(function () {
+                chart.update(0);
+                $timeinfo.text("Averaging data every " + interval + " " + timeseries + (interval > 1 ? "s" : ""));
+            });
         });
     };
 
@@ -310,9 +312,70 @@ $(function () {
 
     var $unregisteredMessage = $("#unregisteredMessage");
     var $registerSensorsModal = $("#registerSensorsModal").modal();
-    var $unregisteredSensors = $registerSensorsModal.find("#unregisteredSensors");
-    var $unregisteredSensorTemplate = $registerSensorsModal.find("#unregisteredSensorTemplate");
+    var $unregisteredSensors = $registerSensorsModal.find(".sensors");
     var $registerSensorMessage = $registerSensorsModal.find(".message");
+    
+    var $editSensors = $("#editSensors");
+    var $editSensorsModal = $("#editSensorsModal").modal();
+    var $editSensorList = $editSensorsModal.find(".sensors");
+    var $editSensorMessage = $editSensorsModal.find(".message");
+    
+    var $editSensorTemplate = $("#editSensorTemplate");
+        
+    $editSensorsModal.on( "click", ".done.button", function(){
+        $editSensorsModal.modal("hide");
+    });
+    
+    $editSensors.click( function( event ){
+        $editSensorMessage.attr("style", "display:none");
+        $editSensorList.empty();
+        for( var i=0; i < sensors.length; i++ )
+        {
+            var sensor = sensors[i];
+            var $sensor = $editSensorTemplate.clone();
+            $sensor.removeAttr("style");
+            $sensor.attr("data-id", sensor.id);
+            $sensor.attr("data-serial", sensor.serial );
+            $sensor.find(".serial").text(sensor.serial);
+            $sensor.find(".value").text(sensor.temp);
+            $sensor.find("input[name=name]").val( sensor.name );
+            $sensor.find("input[name=min]").val( sensor.min );
+            $sensor.find("input[name=max]").val( sensor.max );
+
+            $editSensorList.append($sensor);
+        }
+       $editSensorsModal.modal("show");
+       event.preventDefault();
+       return false;
+    });
+ 
+    $editSensorsModal.on("click", ".saveSensor", function () {
+        var $this = $(this);
+        var $sensor = $this.closest(".sensor");
+        var id = $sensor.attr("data-id");
+        var serial = $sensor.attr("data-serial");
+        var name = $sensor.find("input[name=name]").val();
+        var min = $sensor.find("input[name=min]").val();
+        var max = $sensor.find("input[name=max]").val();
+        var type = 1;//$sensor.attr("data-type");
+
+        $.ajax({
+            method: "PUT",
+            url: "/rest/api/sensor/" + id + "?serial=" + serial + "&name=" + name + "&type=" + type + "&min=" + min + "&max=" + max,
+            dataType: "json",
+            success: function (sensor) {
+                $editSensorMessage.removeClass("error").addClass("success");
+                $editSensorMessage.text(sensor.name + " updated!");
+                $editSensorMessage.removeAttr("style");
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                $editSensorMessage.removeClass("success").addClass("error");
+                $editSensorMessage.text("Failed to update " + name + ".\nCause: " + errorThrown);
+                $editSensorMessage.removeAttr("style");
+            }
+        });
+    });
+    
     var refreshUnregisteredSensors = function () {
         $.ajax({
             url: "/rest/api/sensors/unregistered",
@@ -321,17 +384,17 @@ $(function () {
                 {
                     $unregisteredMessage.text("You have " + unregistered.length + " unregistered sensor" + (unregistered.length > 0 ? "s" : "") + ". Click here to configure.");
                     $unregisteredMessage.removeAttr("style");
-
+                    
                     $unregisteredSensors.empty();
                     for (var i = 0; i < unregistered.length; i++)
                     {
                         var sensor = unregistered[i];
-                        var $sensor = $unregisteredSensorTemplate.clone();
+                        var $sensor = $editSensorTemplate.clone();
                         $sensor.removeAttr("style");
-                        $sensor.attr("id", sensor.serial);
+                        $sensor.attr("data-serial", sensor.serial);
                         $sensor.find(".serial").text(sensor.serial);
                         $sensor.find(".value").text(sensor.temp);
-                        $sensor.find(".registerSensor").attr("data-serial", sensor.serial).attr("data-type", "1");
+                        //$sensor.find(".saveSensor");
 
                         $unregisteredSensors.append($sensor);
                     }
@@ -340,7 +403,9 @@ $(function () {
             }
         });
     };
+    
     refreshUnregisteredSensors();
+    
     $unregisteredMessage.click(function () {
         $registerSensorMessage.attr("style", "display:none");
         $registerSensorsModal.modal("show");
@@ -350,10 +415,10 @@ $(function () {
         refreshUnregisteredSensors();
     });
 
-    $registerSensorsModal.on("click", ".registerSensor", function () {
+    $registerSensorsModal.on("click", ".saveSensor", function () {
         var $this = $(this);
-        var serial = $this.attr("data-serial");
         var $sensor = $this.closest(".sensor");
+        var serial = $sensor.attr("data-serial");
         var name = $sensor.find("input[name=name]").val();
         var min = $sensor.find("input[name=min]").val();
         var max = $sensor.find("input[name=max]").val();
@@ -377,4 +442,40 @@ $(function () {
             }
         });
     });
+    
+    $registerSensorsModal.on( "click", ".done.button", function(){
+        $registerSensorsModal.modal("hide");
+    });
+    var $serverTime = $("#serverTime");
+    
+    var refreshServerTime = function ( callback )
+    {
+        //var begin = getBeginDate();
+        //var end = getEndDate();
+        //var timeseries = getTimeSeries();
+        //var interval = getTimeInterval();
+
+        var url = "/rest/api/servertime/";
+        
+        return $.ajax({
+            url: url,
+            dataType: "text",
+            success: function( data ){
+                
+                var datetime = moment(data);
+                
+                $serverTime.text( datetime.format("h:mm:ss a ddd MMM Do YYYY") );
+                if( datetime.year() <= 1970 )
+                    $serverTime.addClass("warning");
+                else
+                    $serverTime.removeClass("warning");
+                if( callback )
+                    callback.call( this, datetime.toDate() );
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                $serverTime.text("Error getting server time!");
+                $serverTime.addClass("warning");
+            }
+        });
+    };
 });
