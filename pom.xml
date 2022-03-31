@@ -18,7 +18,7 @@
         <pi.password>raspberry</pi.password>
         <pi.deployDirectory>/home/pi/artifacts</pi.deployDirectory>
         <pi.main.class>ca.endeavour.JettyServer</pi.main.class>
-        <spring.version>5.1.3.RELEASE</spring.version>
+        <spring.version>5.3.18</spring.version>
         <jersey.version>2.27</jersey.version>
         <jetty.version>9.4.35.v20201120</jetty.version>
     </properties>
