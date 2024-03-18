@@ -52,7 +52,7 @@ public class SpringConfig
         driver.setDriverClassName(org.postgresql.Driver.class.getName());
         //driver.setUrl("jdbc:mysql://localhost:3306/sensors");
         driver.setUrl("jdbc:postgresql://localhost:5432/sensors");
-        driver.setUsername("sensors");
+        driver.setUsername("sensor");
         driver.setPassword("Endeavour");
         return driver;
     }

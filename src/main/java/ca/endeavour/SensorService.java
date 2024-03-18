@@ -29,9 +29,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.Calendar;
 import javax.persistence.Query;
-import javax.persistence.criteria.CriteriaBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -349,6 +350,19 @@ public class SensorService
             log(sensorEntity, sensor);
         }
         log.info("Finished polling sensors...");
+    }
+
+    @Scheduled(cron = "0 0 12 1/5 * ?")
+    @Transactional
+    public void cleanup()
+    {
+        // TODO delete data older than 30 days old
+        LocalDateTime cutoff = LocalDateTime.now().minus(Period.ofDays(30));
+        
+        String hql = "DELETE FROM Event e WHERE e.timestamp < :cutoff";
+        TypedQuery<Event> query = em.createQuery( hql , Event.class);
+        query.setParameter("cutoff", cutoff);
+        query.executeUpdate();
     }
 
     //@PostInitialize

@@ -1,3 +1,21 @@
+
+sudo apt update
+
+sudo apt install postgresql
+
+sudo su postgres
+
+createuser sensor -P --interactive
+
+>> Enter password as 
+
+
+sudo vim /etc/systemd/system/sensors.service
+
+
+
+
+
 created init.d script for /opt/endeavour-monitor/EndeavourMonitor.jar
 writing logs to /opt/endeavour-monitor/log.txt
 
@@ -18,4 +36,3 @@ git pull
 mvn package
 sudo cp ./target/EndeavourMonitor-1.0-SNAPSHOT-jar-with-dependencies.jar /opt/endeavour-monitor/EndeavourMonitor.jar
 sudo service endeavour-monitor start
-

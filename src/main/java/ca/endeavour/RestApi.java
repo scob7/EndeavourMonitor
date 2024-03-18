@@ -23,7 +23,7 @@ import javax.ws.rs.core.MediaType;
 import java.util.Iterator;
 import java.util.List;
 import javax.inject.Inject;
-import javax.xml.bind.DatatypeConverter;
+import jakarta.xml.bind.DatatypeConverter;
 import org.springframework.stereotype.Component;
 
 /**
