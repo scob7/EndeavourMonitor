@@ -1,8 +1,7 @@
-
 $(function () {
 
     var sensors = [];
-    var sensorColors = ["#50b13f", "#2597ce", "#ce8325", "#5e25ce", "#b425ce", "#ce2563", "#ffcc00", "#ff9900", "#ff6699"];
+    var sensorColors = ["#2b7552", "#2597ce", "#ce8325", "#5e25ce", "#b425ce", "#ce2563", "#ffcc00", "#ff9900", "#ff6699", "#00c9bc"];
     var timeseriesEndPadding = 0.05;
 
     var timescale_minutes = "minute";
@@ -42,7 +41,7 @@ $(function () {
     var $sensorTemplate = $("#sensorTemplate");
     var refreshSensors = function () {
         return $.ajax({
-            url: "/rest/api/sensors",
+            url: "/api/sensors",
             success: function (result) {
                 sensors = result;
                 renderSensors();
@@ -269,7 +268,7 @@ $(function () {
         //var timeseries = getTimeSeries();
         //var interval = getTimeInterval();
 
-        var url = "/rest/api/sensor/" + sensor.id
+        var url = "/api/sensor/" + sensor.id
                 + "/timeseries/" + interval + "/" + timeseries
                 + "?begin=" + begin.toISOString()
                 + "&end=" + end.toISOString();
@@ -277,7 +276,7 @@ $(function () {
         return $.ajax({
             url: url,
             dataType: "json",
-            success: function (timeseries) {
+            success: function (data) {
                 //data.datasets = [];
                 var dataset = getSensorDataset(sensor);
 //                            var alert = {
@@ -289,11 +288,26 @@ $(function () {
                 //json
                 dataset.data = [];
                 sensorData.labels = [];
-                for (var i = 0; i < timeseries.length; i++)
+                for (var i = 0; i < data.length; i++)
                 {
-                    var point = timeseries[i];
-                    sensorData.labels.push(moment(point.timestamp).format(format));
-                    dataset.data.push(point.temp);
+                    var point = data[i];
+                    //sensorData.labels.push(moment(point.timestamp).format(format));
+                    var timestamp = new Date(point[0]);
+                    var timestampLabel = "";
+                    if( timeseries == timescale_minutes || timeseries ==  timescale_hourly){
+                        timestampLabel = timestamp.toLocaleTimeString();
+                    }
+                    else{
+                        timestampLabel = timestamp.toLocaleDateString();
+                    }
+                    sensorData.labels.push(timestampLabel);
+                    // var timescale_minutes = "minute";
+                    // var timescale_hourly = "hour";
+                    // var timescale_daily = "day";
+                    // var timescale_weekly = "week";
+                    // var timescale_monthly = "month";
+                    // var timescale_yearly = "year";
+                    dataset.data.push(point[1]);
                     //alert.data.push(45);
                 }
                 //window.sensorsChart.update();
@@ -334,10 +348,10 @@ $(function () {
             var sensor = sensors[i];
             var $sensor = $editSensorTemplate.clone();
             $sensor.removeAttr("style");
-            $sensor.attr("data-id", sensor.id);
+            //$sensor.attr("data-id", sensor.serial);
             $sensor.attr("data-serial", sensor.serial );
             $sensor.find(".serial").text(sensor.serial);
-            $sensor.find(".value").text(sensor.temp);
+            $sensor.find(".value").text(sensor.value);
             $sensor.find("input[name=name]").val( sensor.name );
             $sensor.find("input[name=min]").val( sensor.min );
             $sensor.find("input[name=max]").val( sensor.max );
@@ -361,7 +375,7 @@ $(function () {
 
         $.ajax({
             method: "PUT",
-            url: "/rest/api/sensor/" + id + "?serial=" + serial + "&name=" + name + "&type=" + type + "&min=" + min + "&max=" + max,
+            url: "/api/sensor/" + id + "?serial=" + serial + "&name=" + name + "&type=" + type + "&min=" + min + "&max=" + max,
             dataType: "json",
             success: function (sensor) {
                 $editSensorMessage.removeClass("error").addClass("success");
@@ -378,7 +392,7 @@ $(function () {
     
     var refreshUnregisteredSensors = function () {
         $.ajax({
-            url: "/rest/api/sensors/unregistered",
+            url: "/api/sensors/unregistered",
             success: function (unregistered) {
                 if (unregistered.length > 0)
                 {
@@ -418,15 +432,18 @@ $(function () {
     $registerSensorsModal.on("click", ".saveSensor", function () {
         var $this = $(this);
         var $sensor = $this.closest(".sensor");
+        var $form = $sensor.find("form");
+
         var serial = $sensor.attr("data-serial");
         var name = $sensor.find("input[name=name]").val();
         var min = $sensor.find("input[name=min]").val();
         var max = $sensor.find("input[name=max]").val();
         var type = 1;//$sensor.attr("data-type");
 
+
         $.ajax({
             method: "POST",
-            url: "/rest/api/sensor/register/" + serial + "?name=" + name + "&type=" + type + "&min=" + min + "&max=" + max,
+            url: "/api/sensor/register/" + serial + "?name=" + name + "&type=" + type + "&min=" + min + "&max=" + max,
             dataType: "json",
             success: function (sensor) {
                 $registerSensorMessage.removeClass("error").addClass("success");
@@ -455,22 +472,22 @@ $(function () {
         //var timeseries = getTimeSeries();
         //var interval = getTimeInterval();
 
-        var url = "/rest/api/servertime/";
+        var url = "/api/servertime";
         
         return $.ajax({
             url: url,
             dataType: "text",
             success: function( data ){
                 
-                var datetime = moment(data);
+                var datetime = new Date(data);
                 
-                $serverTime.text( datetime.format("h:mm:ss a ddd MMM Do YYYY") );
-                if( datetime.year() <= 1970 )
+                $serverTime.text( data ); //.format("h:mm:ss a ddd MMM Do YYYY") );
+                if( datetime.getFullYear() <= 1970 )
                     $serverTime.addClass("warning");
                 else
                     $serverTime.removeClass("warning");
                 if( callback )
-                    callback.call( this, datetime.toDate() );
+                    callback.call( this, datetime );
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 $serverTime.text("Error getting server time!");

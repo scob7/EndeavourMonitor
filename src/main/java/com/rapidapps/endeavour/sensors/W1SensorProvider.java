@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package ca.endeavour.sensors;
+package com.rapidapps.endeavour.sensors;
 
 import com.pi4j.io.w1.W1Device;
 import com.pi4j.io.w1.W1Master;
@@ -28,16 +28,18 @@ public class W1SensorProvider implements SensorProvider {
     private static long LAST_READ_ATTEMPT = 0;
     private static final long READ_DELAY = 100; // delay reads by 10 ms
 
+    @SuppressWarnings("rawtypes")
     @Override
-    public List<AbstractSensor> readSensors() {
-        List<AbstractSensor> result = new ArrayList<>();
+    public List<String> listSensors() {
+        List<String> result = new ArrayList<>();
         List<W1Device> w1Sensors = w1.getDevices();
         //waitForSensors(DEFAULT_WAIT);
         Iterator<W1Device> iter = w1Sensors.iterator();
         while (iter.hasNext()) {
             W1Device w1Sensor = iter.next();
             try {
-                result.add(readSensor(w1Sensor));
+                //result.add(readSensor(w1Sensor));
+                result.add(w1Sensor.getId());
             } catch (Exception ex) {
                 log.warn("Failed to read sensor " + w1Sensor.getId() + " " + ex.getMessage() );
                 //System.err.println("Failed to read sensor " + w1Sensor.getId() + " value.");
@@ -48,15 +50,14 @@ public class W1SensorProvider implements SensorProvider {
         return result;
     }
 
-    private static void waitForSensors(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException ie) {
-        }
-    }
-
+    // private static void waitForSensors(long millis) {
+    //     try {
+    //         Thread.sleep(millis);
+    //     } catch (InterruptedException ie) {
+    //     }
+    // }
     @Override
-    public AbstractSensor readSensor(final String serial) throws IOException {
+    public SensorReading readSensor(final String serial) throws IOException {
         List<W1Device> w1Sensors = w1.getDevices();
         //waitForSensors(DEFAULT_WAIT);
         Iterator<W1Device> iter = w1Sensors.iterator();
@@ -70,10 +71,10 @@ public class W1SensorProvider implements SensorProvider {
         return null;
     }
 
-    private static AbstractSensor readSensor(W1Device w1Sensor) throws IOException {
+    private static SensorReading readSensor(W1Device w1Sensor) throws IOException {
         //int type = w1Sensor.getFamilyId();
         // check family id to determine the type of sensor?
-        final String id = w1Sensor.getId().trim();
+        final String serial = w1Sensor.getId().trim();
         int retries = 3;
         while (retries > 0) {
             retries--;
@@ -92,17 +93,17 @@ public class W1SensorProvider implements SensorProvider {
             LAST_READ_ATTEMPT = time;
             try {
                 String value = w1Sensor.getValue();
-                log.info(w1Sensor.getId() + "\n" + value);
-                float temp = parseTemperature(value);
-                TemperatureSensor sensor = new TemperatureSensor(id);
-                sensor.setValue(temp);
-                return sensor;
+                log.info(serial + "\n" + value);
+                //float temp = parseTemperature(value);
+                //TemperatureSensor sensor = new TemperatureSensor(id);
+                //sensor.setValue(temp);
+                return new SensorReading(serial, value);
             } catch (Exception ex) {
-                log.warn("Failed to read sensor " + id + ": " + ex.getMessage() );   
+                log.warn("Failed to read sensor " + serial + ": " + ex.getMessage() );   
             }
         }
 
-        throw new IOException("Sensor " + id + " failed. Too Many retries");
+        throw new IOException("Sensor read failed for " + serial + ". Too Many retries");
     }
 
     private static final int TEMP_PRECISION = 3;
