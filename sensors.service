@@ -1,0 +1,18 @@
+# copy to /etc/systemd/system/sensors.service
+[Unit]
+Description=Sensor Moniroting Java service
+After=syslog.target network.target
+
+[Service]
+SuccessExitStatus=143
+
+WorkingDirectory=/opt/sensors
+ExecStart=/bin/java -Xms128m -Xmx256m -jar sensors.jar
+User=jvmapps
+Type=simple
+Restart=on-failure
+RestartSec=10
+ExecStop=/bin/kill -15 $MAINPID
+
+[Install]
+WantedBy=multi-user.target
