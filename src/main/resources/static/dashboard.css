@@ -6,6 +6,7 @@
 #sensorChartWrapper #sensorChart{
     height:100%;
     cursor: grab;
+    touch-action: pan-x;
 }
 
 #sensors {
@@ -65,4 +66,8 @@
 
 #unregisteredMessage:hover{
     cursor: pointer;
+}
+
+#chartstartdate{
+    display: inline;
 }

@@ -6,11 +6,8 @@
 package com.rapidapps.endeavour.api;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.Iterator;
 import java.util.List;
 
@@ -80,7 +77,7 @@ public class RestApi {
             Sensor sensor = iter.next();
             // final JsonObject json = sensor.toJSON();
             try {
-                SensorReading reading = sensorService.readSensor(sensor.getSerial());
+                SensorReading reading = sensorService.getLatestSensorReading(sensor.getSerial());
                 if (reading != null){
                     sensor.setTemp( Float.parseFloat(reading.getValue()));
                     //result.add(sensor);
@@ -112,24 +109,24 @@ public class RestApi {
         return sensors;
     }
 
-    @GetMapping(path = "/sensor/{id}/events", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<Event> events(@PathVariable("id") final long id,
-            @RequestParam("start") @DefaultValue("0") long start,
-            @RequestParam("count") @DefaultValue("1000") long count,
-            @RequestParam("begin") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime begin,
-            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
-        // JsonArray json = new JsonArray();
-        // Device device = sensorService.findDeviceById(id);
-        // Date beginDate = null;
-        // if (begin != null) {
-        // beginDate = DatatypeConverter.parseDateTime(begin).getTime();
-        // }
-        // Date endDate = null;
-        // if (end != null) {
-        // endDate = DatatypeConverter.parseDateTime(end).getTime();
-        // }
-        return sensorService.findSensorEvents(id, start, count, begin, end);
-    }
+    // @GetMapping(path = "/sensor/{id}/events", produces = MediaType.APPLICATION_JSON_VALUE)
+    // public List<Event> events(@PathVariable("id") final long id,
+    //         @RequestParam("start") @DefaultValue("0") long start,
+    //         @RequestParam("count") @DefaultValue("1000") long count,
+    //         @RequestParam("begin") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime begin,
+    //         @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+    //     // JsonArray json = new JsonArray();
+    //     // Device device = sensorService.findDeviceById(id);
+    //     // Date beginDate = null;
+    //     // if (begin != null) {
+    //     // beginDate = DatatypeConverter.parseDateTime(begin).getTime();
+    //     // }
+    //     // Date endDate = null;
+    //     // if (end != null) {
+    //     // endDate = DatatypeConverter.parseDateTime(end).getTime();
+    //     // }
+    //     return sensorService.findSensorEvents(id, start, count, begin, end);
+    // }
 
     @GetMapping(path = "sensor/{sensorid}/timeseries/{interval}/{timeseries}", produces = MediaType.APPLICATION_JSON_VALUE)
     public @ResponseBody ResponseEntity<Object>  timesseries(

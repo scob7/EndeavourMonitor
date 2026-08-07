@@ -1,0 +1,16 @@
+install files to /opt/EndeavourMonitor
+ - EndeavourMonitor.jar
+ - shutdown.py
+ - sudo cp endeavourmonitor.service -> /etc/init.d/
+
+install postgres
+
+login: psql -h localhost -d sensors -U endeavour
+
+create user EndeavourMonitor
+create database sensors
+give permissions for sensors to EndeavourMonitor
+
+install java 17 https://medium.com/javarevisited/java-17-on-the-raspberry-pi-d5a4d3e0e8ca
+
+

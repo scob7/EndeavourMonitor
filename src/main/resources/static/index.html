@@ -16,6 +16,8 @@ and open the template in the editor.
         <link rel="stylesheet" href="/semantic-ui/semantic.css">
         <script src="./dashboard.js"></script>
         <link rel="stylesheet" href="./dashboard.css">
+        <script type="text/javascript" src="/semantic-ui-calendar/calendar.min.js"></script>
+        <link rel="stylesheet" href="/semantic-ui-calendar/calendar.min.css" />
     </head>
     <body>
         <div class="ui page">
@@ -57,12 +59,18 @@ and open the template in the editor.
                     <div><a id="editSensors" href="">Edit sensors</a></div>
                 </div>
                 <div class="right aligned column">
+                    <div id="chartstartdate" class="ui calendar" >
+                        <div class="ui input">
+                            <input type="text" placeholder="Date/Time">
+                        </div>
+                    </div>
+                    <button class="ui button blue" id="liveChart">Live</button>
                     <div id="timeseries" class="ui buttons">
                         <button class="ui active button" data-interval="1" data-timeseries="minute" data-begin="60" data-format="h:mm a" >1H</button>
                         <button class="ui button" data-interval="2" data-timeseries="minute" data-begin="120" data-format="h:mm a">2H</button>
                         <button class="ui button" data-interval="4" data-timeseries="minute" data-begin="240" data-format="h:mm a">4H</button>
                         <button class="ui button" data-interval="20" data-timeseries="minute" data-begin="1440" data-format="MMM D h:mm a">1D</button>
-                        <button class="ui button" data-interval="1" data-timeseries="hour" data-begin="168" data-format="MMM D h a">1W</button>
+                        <button class="ui button" data-interval="1" data-timeseries="hour" data-begin="168" data-format="MMM D hh a">1W</button>
                         <button class="ui button" data-interval="2" data-timeseries="hour" data-begin="336" data-format="MMM D hh a">2W</button>
                     </div>
                     <div id="timeinfo"></div>

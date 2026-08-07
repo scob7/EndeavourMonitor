@@ -28,7 +28,6 @@ public class W1SensorProvider implements SensorProvider {
     private static long LAST_READ_ATTEMPT = 0;
     private static final long READ_DELAY = 100; // delay reads by 10 ms
 
-    @SuppressWarnings("rawtypes")
     @Override
     public List<String> listSensors() {
         List<String> result = new ArrayList<>();
@@ -38,8 +37,8 @@ public class W1SensorProvider implements SensorProvider {
         while (iter.hasNext()) {
             W1Device w1Sensor = iter.next();
             try {
-                //result.add(readSensor(w1Sensor));
-                result.add(w1Sensor.getId());
+                //String value = readSensor(w1Sensor);
+                result.add(w1Sensor.getId().trim());
             } catch (Exception ex) {
                 log.warn("Failed to read sensor " + w1Sensor.getId() + " " + ex.getMessage() );
                 //System.err.println("Failed to read sensor " + w1Sensor.getId() + " value.");
@@ -63,7 +62,7 @@ public class W1SensorProvider implements SensorProvider {
         Iterator<W1Device> iter = w1Sensors.iterator();
         while (iter.hasNext()) {
             W1Device w1Sensor = iter.next();
-            if (w1Sensor.getId().trim().equalsIgnoreCase(serial)) {
+            if (w1Sensor.getId().trim().equalsIgnoreCase(serial.trim())) {
                 return readSensor(w1Sensor);
             }
         }
@@ -93,11 +92,11 @@ public class W1SensorProvider implements SensorProvider {
             LAST_READ_ATTEMPT = time;
             try {
                 String value = w1Sensor.getValue();
-                log.info(serial + "\n" + value);
-                //float temp = parseTemperature(value);
+                log.info("Sensor read for " + serial + " => " + value);
+                float temp = parseTemperature(value);
                 //TemperatureSensor sensor = new TemperatureSensor(id);
                 //sensor.setValue(temp);
-                return new SensorReading(serial, value);
+                return new SensorReading(serial, Float.toString(temp));
             } catch (Exception ex) {
                 log.warn("Failed to read sensor " + serial + ": " + ex.getMessage() );   
             }

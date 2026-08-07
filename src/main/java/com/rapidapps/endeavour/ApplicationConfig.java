@@ -1,25 +1,26 @@
 package com.rapidapps.endeavour;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
-import org.springframework.web.servlet.function.RouterFunction;
-import org.springframework.web.servlet.function.ServerResponse;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.pi4j.io.w1.W1Master;
 import com.rapidapps.endeavour.sensors.MockSensorProvider;
 import com.rapidapps.endeavour.sensors.SensorProvider;
+import com.rapidapps.endeavour.sensors.W1SensorProvider;
 
 @Configuration
 @EnableTransactionManagement
 @EnableScheduling
 public class ApplicationConfig {
+
+    @Value("${w1.mock:false}")
+    private Boolean mock1w;
 
     @Bean
     public Jackson2ObjectMapperBuilderCustomizer getObjectMapper() {
@@ -37,7 +38,10 @@ public class ApplicationConfig {
 
     @Bean
     public SensorProvider getSensorProvider() {
-        return new MockSensorProvider();
+        if( mock1w )
+            return new MockSensorProvider();
+        return new W1SensorProvider();
+        
     }
 
     // @Bean

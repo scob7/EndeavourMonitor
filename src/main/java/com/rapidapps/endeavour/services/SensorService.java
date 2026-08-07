@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -18,6 +17,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+
+import javax.annotation.PostConstruct;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
+import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaDelete;
+import javax.persistence.criteria.Root;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,14 +40,6 @@ import com.rapidapps.endeavour.entities.Event;
 import com.rapidapps.endeavour.entities.Sensor;
 import com.rapidapps.endeavour.sensors.SensorProvider;
 import com.rapidapps.endeavour.sensors.SensorProvider.SensorReading;
-
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.Query;
-import jakarta.persistence.TypedQuery;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaDelete;
-import jakarta.persistence.criteria.Root;
 
 /**
  *
@@ -59,6 +59,7 @@ public class SensorService {
 
     // @Inject
     private final Map<String, Sensor> sensorCache = new ConcurrentHashMap<>();
+    private final Map<String, SensorReading> sensorReadings = new ConcurrentHashMap<>();
 
     // public static Event success( Device device, String value )
     // {
@@ -81,7 +82,7 @@ public class SensorService {
     // event.timestamp = new Date();
     // return event;
     // }
-    public Event saveReading(Sensor sensor, SensorReading reading) {
+    private Event saveReading(Sensor sensor, SensorReading reading) {
         Event event = new Event();
         event.setSensorId(sensor.getId());
         event.setTimestamp(OffsetDateTime.now());
@@ -101,6 +102,7 @@ public class SensorService {
         //     }
         // });
         em.persist(event);
+        sensorReadings.put(sensor.getSerial(), reading);
         return event;
     }
 
@@ -118,7 +120,7 @@ public class SensorService {
         sensor.setName(name);
         sensor.setMin(min);
         sensor.setMax(max);
-        em.merge(sensor);
+        sensor = em.merge(sensor);
 
         sensorCache.put(serial, sensor);
         return sensor;
@@ -181,23 +183,23 @@ public class SensorService {
         return query.getResultList();
     }
 
-    @Transactional(readOnly = true)
-    public List<Event> findSensorEvents(long sensorId, long start, long max, LocalDateTime begin, LocalDateTime end) {
-        String hql = "SELECT e from Event e WHERE e.sensorId = :sensorId";
-        if (begin != null)
-            hql += " AND e.timestamp >= :begin";
-        if (end != null)
-            hql += " AND e.timestamp <= :end";
-        hql += " ORDER BY e.timestamp ASC";
-        TypedQuery<Event> query = em.createQuery(hql, Event.class);
-        query.setParameter("sensorId", sensorId);
-        if (begin != null)
-            query.setParameter("begin", begin);
-        if (end != null)
-            query.setParameter("end", end);
+    // @Transactional(readOnly = true)
+    // public List<Event> findSensorEvents(long sensorId, long start, long max, LocalDateTime begin, LocalDateTime end) {
+    //     String hql = "SELECT e from Event e WHERE e.sensorId = :sensorId";
+    //     if (begin != null)
+    //         hql += " AND e.timestamp >= :begin";
+    //     if (end != null)
+    //         hql += " AND e.timestamp <= :end";
+    //     hql += " ORDER BY e.timestamp ASC";
+    //     TypedQuery<Event> query = em.createQuery(hql, Event.class);
+    //     query.setParameter("sensorId", sensorId);
+    //     if (begin != null)
+    //         query.setParameter("begin", begin);
+    //     if (end != null)
+    //         query.setParameter("end", end);
 
-        return query.getResultList();
-    }
+    //     return query.getResultList();
+    // }
 
     public static enum TimeSeries {
         minute, hour, day, week, month, year
@@ -305,9 +307,10 @@ public class SensorService {
         return result;
     }
 
-    public SensorReading readSensor(String serial) throws IOException {
-        // sensorProvider.readSensors();
-        return sensorProvider.readSensor(serial);
+    public SensorReading getLatestSensorReading(String serial) throws IOException {
+        //sensorCache.get(serial).getTemp();
+        SensorReading cachedReading = sensorReadings.get(serial);
+        return cachedReading;
     }
 
     private void cacheSensors() {
@@ -317,9 +320,9 @@ public class SensorService {
         while (iter.hasNext()) {
             Sensor sensor = iter.next();
             sensorCache.put(sensor.getSerial(), sensor);
+            //sensorReadings.put(sensor.getSerial(), readSensor(sensor.getSerial()));
         }
     }
-
 
 
     @Transactional(readOnly = true)
@@ -331,7 +334,7 @@ public class SensorService {
         while (iter.hasNext()) {
             String serial = iter.next();
             if (!sensorCache.containsKey(serial)){
-                result.add(readSensor(serial));
+                result.add(sensorProvider.readSensor(serial));
             }
         }
         return result;
@@ -343,6 +346,7 @@ public class SensorService {
     @Transactional
     public void pollSensors() {
         log.info("Starting to poll sensors...");
+
         //List<Sensor> sensors = this.findAllSensors();
         //List<String> sensors = sensorProvider.listSensors();
         Iterator<Sensor> iter = sensorCache.values().iterator();
@@ -361,8 +365,10 @@ public class SensorService {
             // }
 
             try {
-                saveReading(sensor, readSensor(serial));
-            } catch (IOException e) {
+                SensorReading reading = sensorProvider.readSensor(serial);
+                if( reading != null )
+                    saveReading(sensor, reading );
+            } catch (Exception e) {
                 log.warn("Failed to poll sensor " + serial, e);
             }
         }
@@ -372,7 +378,9 @@ public class SensorService {
     @Scheduled(fixedDelay = 24, timeUnit =TimeUnit.HOURS)
     @Transactional
     public void cleanup() {
-        log.info("Delete old data...");
+        OffsetDateTime cleanupDate = OffsetDateTime.now().minusMonths(6);
+
+        log.info("Delete old data before ", cleanupDate);
         CriteriaBuilder cb = em.getCriteriaBuilder();
 
         // create delete
@@ -382,14 +390,14 @@ public class SensorService {
         Root<Event> e = delete.from(Event.class);
 
         // set where clause
-        LocalDateTime now = LocalDateTime.now();
-        delete.where(cb.lessThanOrEqualTo(e.get("timestamp"), now.minusMonths(3)));
+        
+        delete.where(cb.lessThanOrEqualTo(e.get("timestamp"), cleanupDate ));
 
         // perform update
         em.createQuery(delete).executeUpdate();
     }
 
-    // @PostInitialize
+    @PostConstruct
     @Transactional
     public void init() {
         System.out.println("Sensor service init()");

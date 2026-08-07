@@ -1,0 +1,21 @@
+## put in /etc/init.d/
+## sudp systemctl enable endeavourmonitor
+## sudp systemctl start endeavourmonitor
+## sudp systemctl status endeavourmonitor
+
+[Unit]
+Description=Endeavour Monitor
+Requires=network.target postgresql.service
+After=network-online.target 
+
+[Service]
+ExecStart=/usr/bin/java -jar /opt/EndeavourMonitor/EndeavourMonitor.jar --spring.config.location=/opt/EndeavourMonitor/application.properties
+WorkingDirectory=/opt/EndeavourMonitor
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=david
+AmbientCapabilities = CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target

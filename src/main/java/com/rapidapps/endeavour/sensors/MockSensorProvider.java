@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -39,7 +40,7 @@ public class MockSensorProvider implements SensorProvider
     public List<String> listSensors()
     {
         // update with new random values
-        return sensors.keySet().stream().toList();
+        return sensors.keySet().stream().collect(Collectors.toUnmodifiableList());
     }
 
    

@@ -6,10 +6,10 @@ $(function () {
 
     var timescale_minutes = "minute";
     var timescale_hourly = "hour";
-    var timescale_daily = "day";
-    var timescale_weekly = "week";
-    var timescale_monthly = "month";
-    var timescale_yearly = "year";
+    //var timescale_daily = "day";
+    //var timescale_weekly = "week";
+    //var timescale_monthly = "month";
+    //var timescale_yearly = "year";
 
     var $timeseries = $("#timeseries");
     var $timeinfo = $("#timeinfo");
@@ -39,7 +39,29 @@ $(function () {
 
     var $sensors = $("#sensors");
     var $sensorTemplate = $("#sensorTemplate");
+    var $serverTime = $("#serverTime");
+
     var refreshSensors = function () {
+        
+        $.ajax({
+            url: "/api/servertime",
+            dataType: "text",
+            success: function( data ){
+                
+                var datetime = new Date(data);
+                
+                $serverTime.text( data ); //.format("h:mm:ss a ddd MMM Do YYYY") );
+                if( datetime.getFullYear() <= 1970 )
+                    $serverTime.addClass("warning");
+                else
+                    $serverTime.removeClass("warning");
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                $serverTime.text("Error getting server time!");
+                $serverTime.addClass("warning");
+            }
+        });
+
         return $.ajax({
             url: "/api/sensors",
             success: function (result) {
@@ -56,58 +78,163 @@ $(function () {
     });
 
     var $sensorChart = $("#sensorChart");
-    var scrollWait = true;
-    var scrollInterval = setInterval(function () {
-        scrollWait = false;
-    }, 500);
+    //var scrollWait = true;
+    //var scrollInterval = setTimeout(function () {
+    //    scrollWait = false;
+    //}, 1000);
     //var scrollPreviousX;
-    var scrollStartX;
-    
-    var scrollChart = function( x )
-    {
-        var scroll =  x - scrollStartX;
-        //scrollPreviousX = x;
-        //console.info("previous X: " + scrollPreviousX);
-        //console.info("current X: " + x );
-        console.info("Scroll: " + scroll);
-        var scrollPercent = (scroll / $sensorChart.width());
-        console.info("Scroll %: " + (scrollPercent * 100));
-        if (!scrollWait && (scrollPercent >= 0.1 || scrollPercent <= -0.1)) {
-            //var scroll = e.movementX;
-            //if( chartInterval )
-            //    clearInterval( chartInterval );
-            scrollWait = true;
-            scrollStartX = x;
-            refreshChart(scrollPercent);
-        }
-    };
-    $sensorChart.on("touchstart", function (evt) {
-        console.info("touchstart");
-        var touch = evt.touches[0];
-        scrollStartX = touch.pageX;
-        $sensorChart.on("touchmove", function (evt) {
-            var touch = evt.touches[0];
-            scrollChart( touch.pageX );
-        });
-        
-        $(document).on("touchend", function () {
-            console.info("touchend");
-            $sensorChart.off("touchmove");
-        });
-    });
-    
-    $sensorChart.on("mousedown", function ( evt ) {
-        console.info("mousedown");
-        scrollStartX = evt.pageX;
-        $sensorChart.on("mousemove", function (evt) {
-            scrollChart( evt.pageX );
-        });
+    var live = true;
+    var chartBegin;
+    var chartEnd;
+    var beginOffset;
+    var endOffset;
 
-        $(document).on("mouseup", function () {
-            console.info("mouseup");
-            $sensorChart.off("mousemove");
+    var updateLive = function (newLive) {
+        if( newLive  ){
+            $("#liveChart").addClass("blue");
+        }else{
+            $("#liveChart").removeClass("blue");
+        }
+        live = newLive;
+    };
+
+    var refreshChart = function ()
+    {
+        var $activeTimeseries = $timeseries.find(".active.button");
+        var interval = $activeTimeseries.attr("data-interval");
+        var timeseries = $activeTimeseries.attr("data-timeseries");
+        console.info("refreshChart: interval: " + interval + " timeseries: " + timeseries);
+        var beginInterval = $activeTimeseries.attr("data-begin");
+
+        var format = $activeTimeseries.attr("data-format");
+
+        if( live ){
+            chartBegin = new Date();
+            chartEnd = new Date();
+            beginOffset = beginInterval;
+            endOffset = Math.round(beginInterval * timeseriesEndPadding);
+        
+            // console.info("Begin offset: " + beginOffset + " " + timeseries);
+            // console.info("End offset: " + endOffset + " " + timeseries);
+            if (timeseries === timescale_minutes)
+            {
+                chartBegin.setMinutes(chartBegin.getMinutes() - beginOffset);
+                chartEnd.setMinutes(chartEnd.getMinutes() + endOffset);
+
+            } else if (timeseries === timescale_hourly)
+            {
+                chartBegin.setHours(chartBegin.getHours() - beginOffset);
+                chartEnd.setHours(chartEnd.getHours() + endOffset);
+
+            } else if (timeseries === timescale_daily)
+            {
+                chartBegin.setDate(chartBegin.getDate() - beginOffset);
+                chartEnd.setDate(chartEnd.getDate() + endOffset);
+
+            } else if (timeseries === timescale_weekly)
+            {
+                chartBegin.setDate(chartBegin.getDate() - (beginOffset * 7));
+                chartEnd.setDate(chartEnd.getDate() + (endOffset * 7));
+            } else if (timeseries === timescale_monthly)
+            {
+                chartBegin.setMonth(chartBegin.getMonth() - beginOffset);
+                chartEnd.setMonth(chartEnd.getMonth() + endOffset);
+            } else if (timeseries === timescale_yearly)
+            {
+                chartBegin.setYear(chartBegin.getYear() - beginOffset);
+                chartEnd.setYear(chartEnd.getYear() + endOffset);
+            }
+        }
+        console.info("Fetching data from " + chartBegin.toString() + " to " + chartEnd.toString());
+
+        var promises = [];
+        for (var i = 0; i < sensors.length; i++)
+        {
+            var sensor = sensors[i];
+            var $sensor = $sensors.find("#" + sensor.id);
+            if ($sensor.hasClass("showOnGraph"))
+            {
+                promises.push(refreshSensorData(sensor, interval, timeseries, chartBegin, chartEnd, format));
+            } 
+            else
+            {
+                for (var j = 0; j < sensorData.datasets.length; j++)
+                {
+                    var dataset = sensorData.datasets[j];
+                    if (dataset.sensorId === sensor.id)
+                        sensorData.datasets.splice(j, 1);
+                }
+            }
+        }
+        $.when.apply($, promises).then(function () {
+            //if( scrollPercent == 0)
+            chart.update(0);
+            $timeinfo.text("Averaging data every " + interval + " " + timeseries + (interval > 1 ? "s" : ""));
         });
+    };
+    
+    
+    var scrollStartX;
+    var scrollChart = function (scrollEndX) {
+        var scroll = scrollEndX - scrollStartX;
+        var scrollPercent = (scroll / $sensorChart.width());
+        console.info("scroll: " + scroll + " percent: " + scrollPercent);
+
+        var $activeTimeseries = $timeseries.find(".active.button");
+        var beginInterval = $activeTimeseries.attr("data-begin");
+        var timeseries = $activeTimeseries.attr("data-timeseries");
+        beginOffset = Math.round(beginInterval * scrollPercent);
+        endOffset = -1 * Math.round(beginInterval * scrollPercent);
+        
+        if (timeseries === timescale_minutes)
+        {
+            chartBegin.setMinutes(chartBegin.getMinutes() - beginOffset);
+            chartEnd.setMinutes(chartEnd.getMinutes() + endOffset);
+        } else if (timeseries === timescale_hourly)
+        {
+            chartBegin.setHours(chartBegin.getHours() - beginOffset);
+            chartEnd.setHours(chartEnd.getHours() + endOffset);
+        } else if (timeseries === timescale_daily)
+        {
+            chartBegin.setDate(chartBegin.getDate() - beginOffset);
+            chartEnd.setDate(chartEnd.getDate() + endOffset);
+        } else if (timeseries === timescale_weekly)
+        {
+            chartBegin.setDate(chartBegin.getDate() - (beginOffset * 7));
+            chartEnd.setDate(chartEnd.getDate() + (endOffset * 7));
+        } else if (timeseries === timescale_monthly)
+        {
+            chartBegin.setMonth(chartBegin.getMonth() - beginOffset);
+            chartEnd.setMonth(chartEnd.getMonth() + endOffset);
+        } else if (timeseries === timescale_yearly)
+        {
+            chartBegin.setYear(chartBegin.getYear() - beginOffset);
+            chartEnd.setYear(chartEnd.getYear() + endOffset);
+        }
+        updateLive(false);
+        refreshChart();
+    }
+
+    //var scrollPercent = 0;
+    $sensorChart.on("touchstart", function (evt) {
+         //evt.touches[0].clientX
+        scrollStartX = evt.touches[0].pageX;
     });
+
+    $sensorChart.on("touchend", function (evt) {
+        scrollChart(evt.changedTouches[0].pageX);
+    });
+
+    $sensorChart.on("mousedown", function (evt) {
+        //var touch = evt.touches[0];
+        scrollStartX = evt.clientX;
+    });
+    
+    $sensorChart.on("mouseup", function (evt) {
+        console.info("pointer up at ", evt.clientX);
+        scrollChart( evt.clientX );
+    });
+
 
     var renderSensors = function () {
         //$sensors.empty();
@@ -146,97 +273,10 @@ $(function () {
         }
     };
 
-    var chartBegin;
-    var chartEnd;
-
-    var refreshChart = function (scroll)
-    {
-        var $activeTimeseries = $timeseries.find(".active.button");
-        var interval = $activeTimeseries.attr("data-interval");
-        var timeseries = $activeTimeseries.attr("data-timeseries");
-        var beginInterval = $activeTimeseries.attr("data-begin");
-
-        var format = $activeTimeseries.attr("data-format");
-
-        refreshServerTime( function( date ){
-            var beginOffset = 0;
-            var endOffset = 0;
-            if (!scroll) {
-                console.info("Reset dates to now");
-                chartBegin = new Date();
-                chartEnd = new Date();
-                beginOffset = beginInterval;
-                endOffset = Math.round(beginInterval * timeseriesEndPadding);
-            } 
-            else
-            {
-                beginOffset = Math.round(beginInterval * scroll);
-                endOffset = -1 * Math.round(beginInterval * scroll);
-            }
-
-            console.info("Begin offset: " + beginOffset + " " + timeseries);
-            console.info("End offset: " + endOffset + " " + timeseries);
-            if (timeseries === timescale_minutes)
-            {
-                chartBegin.setMinutes(chartBegin.getMinutes() - beginOffset);
-                chartEnd.setMinutes(chartEnd.getMinutes() + endOffset);
-
-            } else if (timeseries === timescale_hourly)
-            {
-                chartBegin.setHours(chartBegin.getHours() - beginOffset);
-                chartEnd.setHours(chartEnd.getHours() + endOffset);
-
-            } else if (timeseries === timescale_daily)
-            {
-                chartBegin.setDate(chartBegin.getDate() - beginOffset);
-                chartEnd.setDate(chartEnd.getDate() + endOffset);
-
-            } else if (timeseries === timescale_weekly)
-            {
-                chartBegin.setDate(chartBegin.getDate() - (beginOffset * 7));
-                chartEnd.setDate(chartEnd.getDate() + (endOffset * 7));
-            } else if (timeseries === timescale_monthly)
-            {
-                chartBegin.setMonth(chartBegin.getMonth() - beginOffset);
-                chartEnd.setMonth(chartEnd.getMonth() + endOffset);
-            } else if (timeseries === timescale_yearly)
-            {
-                chartBegin.setYear(chartBegin.getYesr() - beginOffset);
-                chartEnd.setYesr(chartEnd.getYear() + endOffset);
-            }
-
-            console.info("begin: " + chartBegin.toString());
-            console.info("end: " + chartEnd.toString());
-
-            var promises = [];
-            for (var i = 0; i < sensors.length; i++)
-            {
-                var sensor = sensors[i];
-                var $sensor = $sensors.find("#" + sensor.id);
-                if ($sensor.hasClass("showOnGraph"))
-                {
-                    promises.push(refreshSensorData(sensor, interval, timeseries, chartBegin, chartEnd, format));
-                } else
-                {
-                    for (var j = 0; j < sensorData.datasets.length; j++)
-                    {
-                        var dataset = sensorData.datasets[j];
-                        if (dataset.sensorId === sensor.id)
-                            sensorData.datasets.splice(j, 1);
-                    }
-                }
-            }
-            $.when.apply($, promises).then(function () {
-                chart.update(0);
-                $timeinfo.text("Averaging data every " + interval + " " + timeseries + (interval > 1 ? "s" : ""));
-            });
-        });
-    };
-
+    
     $timeseries.on("click", ".button", function () {
         $timeseries.find(".active.button").removeClass("active");
         $(this).addClass("active");
-        chartInterval = setInterval(refreshChart, 1000 * 60);
         refreshChart();
     });
 
@@ -267,7 +307,7 @@ $(function () {
         //var end = getEndDate();
         //var timeseries = getTimeSeries();
         //var interval = getTimeInterval();
-
+        var now = new Date();
         var url = "/api/sensor/" + sensor.id
                 + "/timeseries/" + interval + "/" + timeseries
                 + "?begin=" + begin.toISOString()
@@ -279,13 +319,6 @@ $(function () {
             success: function (data) {
                 //data.datasets = [];
                 var dataset = getSensorDataset(sensor);
-//                            var alert = {
-//                               label: "Sensor Alert",
-//                               data: [],
-//                               fill: false,
-//                               borderColor: "#ff2323"
-//                            };
-                //json
                 dataset.data = [];
                 sensorData.labels = [];
                 for (var i = 0; i < data.length; i++)
@@ -293,36 +326,34 @@ $(function () {
                     var point = data[i];
                     //sensorData.labels.push(moment(point.timestamp).format(format));
                     var timestamp = new Date(point[0]);
-                    var timestampLabel = "";
-                    if( timeseries == timescale_minutes || timeseries ==  timescale_hourly){
-                        timestampLabel = timestamp.toLocaleTimeString();
+                    
+                    //console.log(new Intl.DateTimeFormat('en-US', options).format(date));
+                     const options = { hour12: true, minute:'numeric', hour: 'numeric' };
+                    if( timestamp.getDate() != now.getDate() || timestamp.getMonth() != now.getMonth() || timestamp.getFullYear() != now.getFullYear() ){
+                        options["day"] = 'numeric';
+                        options["month"] = 'short';
+                        options["year"] = 'numeric';
                     }
-                    else{
-                        timestampLabel = timestamp.toLocaleDateString();
+
+                    if( timeseries == timescale_minutes ){
+                       
+                        timestampLabel = new Intl.DateTimeFormat('en-US', options).format(timestamp);
+                        //timestamp.toLocaleTimeString();
                     }
+                    else if( timeseries == timescale_hourly ){
+                        const options = { month:'short', day:'numeric', hour: 'numeric', minute: 'numeric', hour12: true };
+                        timestampLabel = new Intl.DateTimeFormat('en-US', options).format(timestamp);
+                        //timestampLabel = timestamp.toLocaleDateString();
+                    }
+
+                    //console.info("timestamp: " + timestamp.toString() + " label: " + timestampLabel);
                     sensorData.labels.push(timestampLabel);
-                    // var timescale_minutes = "minute";
-                    // var timescale_hourly = "hour";
-                    // var timescale_daily = "day";
-                    // var timescale_weekly = "week";
-                    // var timescale_monthly = "month";
-                    // var timescale_yearly = "year";
                     dataset.data.push(point[1]);
-                    //alert.data.push(45);
                 }
-                //window.sensorsChart.update();
             }
         });
     };
 
-    var chartInterval;
-    var sensorsInterval;
-    refreshSensors().then(function () {
-        refreshChart();
-    }).then(function () {
-        chartInterval = setInterval(refreshChart, 1000 * 60);
-        sensorsInterval = setInterval(refreshSensors, 1000 * 5);
-    });
 
     var $unregisteredMessage = $("#unregisteredMessage");
     var $registerSensorsModal = $("#registerSensorsModal").modal();
@@ -407,7 +438,7 @@ $(function () {
                         $sensor.removeAttr("style");
                         $sensor.attr("data-serial", sensor.serial);
                         $sensor.find(".serial").text(sensor.serial);
-                        $sensor.find(".value").text(sensor.temp);
+                        $sensor.find(".value").text(sensor.value);
                         //$sensor.find(".saveSensor");
 
                         $unregisteredSensors.append($sensor);
@@ -463,36 +494,53 @@ $(function () {
     $registerSensorsModal.on( "click", ".done.button", function(){
         $registerSensorsModal.modal("hide");
     });
-    var $serverTime = $("#serverTime");
-    
-    var refreshServerTime = function ( callback )
-    {
-        //var begin = getBeginDate();
-        //var end = getEndDate();
-        //var timeseries = getTimeSeries();
-        //var interval = getTimeInterval();
+   
+    $("#liveChart").click(function () {
+        live = true;
+        $("#liveChart").addClass("blue");
+        $chartStartDate.calendar("clear");
+        refreshChart();
+    });
 
-        var url = "/api/servertime";
-        
-        return $.ajax({
-            url: url,
-            dataType: "text",
-            success: function( data ){
+    var $chartStartDate = $("#chartstartdate");
+    $chartStartDate.calendar({
+        disableMinute: true,
+        onChange: function (date, text, mode) {
+            if( date != null ){
+                var $activeTimeseries = $timeseries.find(".active.button");
+                var beginInterval = $activeTimeseries.attr("data-begin");
+                var timeseries = $activeTimeseries.attr("data-timeseries");
                 
-                var datetime = new Date(data);
+                chartBegin = new Date(date);
+                chartEnd = new Date(date);
+                //beginOffset = beginInterval;
+                endOffset = Math.round(beginInterval * timeseriesEndPadding);
                 
-                $serverTime.text( data ); //.format("h:mm:ss a ddd MMM Do YYYY") );
-                if( datetime.getFullYear() <= 1970 )
-                    $serverTime.addClass("warning");
-                else
-                    $serverTime.removeClass("warning");
-                if( callback )
-                    callback.call( this, datetime );
-            },
-            error: function (jqXHR, textStatus, errorThrown) {
-                $serverTime.text("Error getting server time!");
-                $serverTime.addClass("warning");
-            }
-        });
-    };
+                if (timeseries === timescale_minutes)
+                {
+                    chartBegin.setMinutes(chartBegin.getMinutes() - 60);
+                    chartEnd.setMinutes(chartEnd.getMinutes() + 60);
+                } else if (timeseries === timescale_hourly)
+                {
+                    chartBegin.setHours(chartBegin.getHours() - 4);
+                    chartEnd.setHours(chartEnd.getHours() + 4);
+                } else if (timeseries === timescale_daily)
+                {
+                    chartBegin.setDate(chartBegin.getDate() - 7);
+                    chartEnd.setDate(chartEnd.getDate() + 7);
+                }
+                updateLive(false);
+                refreshChart();
+        }else{
+            updateLive(true);
+            refreshChart();
+        }
+    },
+    });
+
+    refreshSensors().then(() => refreshChart());
+    var sensorsInterval = setInterval(refreshSensors, 1000 * 30 );
+    var chartInterval = setInterval(refreshChart, 1000 * 60);
+
+    
 });
